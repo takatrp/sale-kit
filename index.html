@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>商談キット｜納得のための整理（単価・数量・自動化）</title>
+  <title>打ち手検討ツール｜単価・数量・自動化</title>
   <meta name="description" content="費用差額を限界利益率で売上換算し、単価・数量・自動化のどこで回収するかを同じ画面で整理します。" />
 
   <style>
@@ -176,14 +176,8 @@
     }
     .modalTitle{font-weight:900; font-size:13px; color:var(--text); min-width:0}
     .modalTitle span{color:var(--muted); font-weight:800; font-size:12px}
-    .modalFrame{
-      flex:1;
-      background:#fff;
-    }
-    iframe{
-      width:100%; height:100%; border:0;
-      background:#fff;
-    }
+    .modalFrame{flex:1; background:#fff;}
+    iframe{width:100%; height:100%; border:0; background:#fff;}
     .modalHint{
       padding:10px 12px;
       border-top:1px solid rgba(23,50,58,.10);
@@ -192,6 +186,18 @@
       background:#fff;
     }
     .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
+
+    /* Print */
+    .no-print{display:block}
+    @media print{
+      body{background:#fff}
+      .top{position:static; background:#fff; backdrop-filter:none}
+      .btns, .modalBack, .no-print, button{display:none !important}
+      .wrap{padding:0 0 0}
+      .card{box-shadow:none; border:1px solid #ddd}
+      .k, .k2{background:#fff}
+      a{color:#000; text-decoration:none}
+    }
   </style>
 </head>
 
@@ -201,12 +207,13 @@
       <div class="brand">
         <div class="logo" aria-hidden="true"></div>
         <div class="btxt">
-          <div class="bttl">商談キット（納得のための整理）</div>
+          <div class="bttl">打ち手検討ツール</div>
           <div class="bsub">売上換算 → 単価 / 数量 / 自動化 の道筋を同じ画面で確認</div>
         </div>
       </div>
       <div class="btns">
         <button class="btn ghost" id="btnCopy">要点をコピー</button>
+        <button class="btn" id="btnPrint">印刷 / PDF</button>
         <button class="btn primary" id="btnReset">リセット</button>
       </div>
     </div>
@@ -229,12 +236,12 @@
         <div class="row" style="margin-top:12px;">
           <div>
             <label for="feeDiff">費用差額（円 / 月）</label>
-            <input id="feeDiff" inputmode="numeric" placeholder="例：20000" />
+            <input id="feeDiff" inputmode="numeric" placeholder="例：20,000" data-format="int" />
             <div class="help">例：顧問料の差額、追加したい投資額など。</div>
           </div>
           <div>
             <label for="cmr">限界利益率（%）</label>
-            <input id="cmr" inputmode="decimal" placeholder="例：30" />
+            <input id="cmr" inputmode="decimal" placeholder="例：30" data-format="decimal" />
             <div class="help">わからなければ、仮の数値で「目安」を確認できます。</div>
           </div>
         </div>
@@ -242,12 +249,12 @@
         <div class="row" style="margin-top:10px;">
           <div>
             <label for="annualSales">年商（任意 / 円）</label>
-            <input id="annualSales" inputmode="numeric" placeholder="例：120000000" />
+            <input id="annualSales" inputmode="numeric" placeholder="例：120,000,000" data-format="int" />
             <div class="help">入力すると「年商の何%か」を表示します。</div>
           </div>
           <div>
             <label for="monthlySales">月商（任意 / 円）</label>
-            <input id="monthlySales" inputmode="numeric" placeholder="例：10000000" />
+            <input id="monthlySales" inputmode="numeric" placeholder="例：10,000,000" data-format="int" />
             <div class="help">単価ルートの「必要な単価改善率（目安）」が表示できます。</div>
           </div>
         </div>
@@ -291,11 +298,11 @@
                 </div>
               </div>
 
-              <div class="btns" style="margin-top:10px; justify-content:flex-start;">
+              <div class="btns no-print" style="margin-top:10px; justify-content:flex-start;">
                 <button class="btn primary" data-open="price">価格改定ツールで確認</button>
               </div>
 
-              <details>
+              <details class="no-print">
                 <summary>話し方メモ（任意）</summary>
                 <div class="foot">
                   「必要売上は <span class="mono">差額 ÷ 限界利益率</span> で整理できます。<br/>
@@ -312,7 +319,7 @@
 
             <div class="mini">
               <label for="avgPrice">平均単価（円 / 任意）</label>
-              <input id="avgPrice" inputmode="numeric" placeholder="例：12000" />
+              <input id="avgPrice" inputmode="numeric" placeholder="例：12,000" data-format="int" />
               <div class="help">入力すると「必要な追加件数（目安）」を表示します。</div>
 
               <div class="kpi2">
@@ -322,7 +329,7 @@
                 </div>
               </div>
 
-              <div class="btns" style="margin-top:10px; justify-content:flex-start;">
+              <div class="btns no-print" style="margin-top:10px; justify-content:flex-start;">
                 <button class="btn primary" data-open="pl">変動PLツールで確認</button>
               </div>
             </div>
@@ -335,8 +342,8 @@
 
             <div class="mini">
               <label for="hourCost">時間単価（円 / 時）</label>
-              <input id="hourCost" inputmode="numeric" placeholder="例：3000" />
-              <div class="help">入力すると「必要な削減時間（目安）」を表示します。</div>
+              <input id="hourCost" inputmode="numeric" placeholder="例：3,000" data-format="int" />
+              <div class="help">入力すると「必要な削減時間（目安）」を表示できます。</div>
 
               <div class="kpi2">
                 <div class="k2">
@@ -345,7 +352,7 @@
                 </div>
               </div>
 
-              <div class="btns" style="margin-top:10px; justify-content:flex-start;">
+              <div class="btns no-print" style="margin-top:10px; justify-content:flex-start;">
                 <button class="btn primary" data-open="auto">自動化効果ツールで確認</button>
               </div>
             </div>
@@ -372,7 +379,7 @@
   </div>
 
   <!-- modal -->
-  <div class="modalBack" id="modalBack" role="dialog" aria-modal="true" aria-label="ツール表示">
+  <div class="modalBack no-print" id="modalBack" role="dialog" aria-modal="true" aria-label="ツール表示">
     <div class="modal">
       <div class="modalTop">
         <div class="modalTitle" id="modalTitle">ツールを表示 <span>（同一画面）</span></div>
@@ -391,40 +398,109 @@
   </div>
 
   <script>
-    // ====== 設定：ツールURL（必要に応じて差替え） ======
+    // ====== ツールURL（必要に応じて差替え） ======
+    // ※「同一画面で表示」するには、ツール側が iframe 埋め込みを許可している必要があります。
+    // 許可されていない場合は、この画面内では表示されず「別タブ」で開く運用になります。
     const TOOL_URLS = {
-      // LPから辿れるURL（確認済み）
       pl:    "https://takatrp.github.io/hendou_PL_LP/",
       auto:  "https://takatrp.github.io/jidouka-kouka-LP/",
       price: "https://takatrp.github.io/price-up-down-LP/"
-      // ここに「売上換算ツール（詳細版）」がある場合は追記して使ってください（このページ内で簡易換算は完結します）
-      // sales: "https://...."
     };
 
-    const KEY = "mk_shodan_kit_v1";
+    const KEY = "mk_action_tool_v1";
 
     const $ = (id)=>document.getElementById(id);
 
-    function num(v){
-      if(v==null) return 0;
-      const s = String(v).trim()
+    function normalizeDecimalText(s){
+      // 「,」「，」「空白」除去、「・」を小数点として扱う
+      return String(s ?? "")
+        .trim()
         .replace(/[,，\s]/g,'')
         .replace(/[・]/g,'.');
+    }
+
+    function num(v){
+      const s = normalizeDecimalText(v);
       const n = Number(s);
       return Number.isFinite(n) ? n : 0;
     }
+
     function yen(n){
       if(!Number.isFinite(n)) return "—";
       const r = Math.round(n);
       return "¥" + r.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     }
+
     function pct(n){
       if(!Number.isFinite(n)) return "—";
       return (Math.round(n*10)/10).toString() + "%";
     }
+
     function ceil1(n){
       if(!Number.isFinite(n)) return "—";
       return (Math.ceil(n*10)/10).toString();
+    }
+
+    // ====== リアルタイムコンマ入力（カーソル位置維持） ======
+    function formatIntInput(el){
+      const raw = String(el.value ?? "");
+      const caret = el.selectionStart ?? raw.length;
+
+      // カーソルまでに含まれる「数字」の数（コンマ等は除外）
+      const digitsBefore = raw.slice(0, caret).replace(/[^\d]/g, "").length;
+
+      // 全体の数字のみ
+      const digits = raw.replace(/[^\d]/g, "");
+      if(digits === ""){
+        el.value = "";
+        return;
+      }
+
+      const formatted = digits.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+      el.value = formatted;
+
+      // digitsBefore 個の数字の直後にカーソルを戻す
+      let newCaret = 0;
+      let count = 0;
+      while(newCaret < formatted.length && count < digitsBefore){
+        if(/\d/.test(formatted[newCaret])) count++;
+        newCaret++;
+      }
+      el.setSelectionRange(newCaret, newCaret);
+    }
+
+    // 小数入力は「コンマは消す・小数点正規化のみ」（%にコンマは通常不要）
+    function formatDecimalInput(el){
+      const raw = String(el.value ?? "");
+      const caret = el.selectionStart ?? raw.length;
+
+      // 入力途中の "52." を維持したいので、完全な数値化はしない
+      let normalized = raw.replace(/[,，\s]/g,'').replace(/[・]/g,'.');
+
+      // 数字と小数点以外は除外
+      normalized = normalized.replace(/[^\d.]/g, "");
+
+      // 小数点は先頭1つだけ
+      const parts = normalized.split(".");
+      if(parts.length > 2){
+        normalized = parts[0] + "." + parts.slice(1).join("");
+      }
+
+      el.value = normalized;
+      // caretはざっくり維持（厳密でなくてよい）
+      const newPos = Math.min(caret, el.value.length);
+      el.setSelectionRange(newPos, newPos);
+    }
+
+    function bindLiveFormatting(){
+      document.querySelectorAll('input[data-format="int"]').forEach(el=>{
+        el.addEventListener("input", ()=>formatIntInput(el));
+        el.addEventListener("blur",  ()=>formatIntInput(el));
+      });
+      document.querySelectorAll('input[data-format="decimal"]').forEach(el=>{
+        el.addEventListener("input", ()=>formatDecimalInput(el));
+        el.addEventListener("blur",  ()=>formatDecimalInput(el));
+      });
     }
 
     function load(){
@@ -433,6 +509,7 @@
         return raw ? JSON.parse(raw) : {};
       }catch(e){ return {}; }
     }
+
     function save(){
       try{
         localStorage.setItem(KEY, JSON.stringify({
@@ -445,6 +522,7 @@
         }));
       }catch(e){}
     }
+
     function apply(v){
       if(v.feeDiff!=null) $("feeDiff").value = v.feeDiff;
       if(v.cmr!=null) $("cmr").value = v.cmr;
@@ -464,6 +542,7 @@
 
       const needSalesM = (cmr>0) ? feeDiff / (cmr/100) : NaN;
       const needSalesY = Number.isFinite(needSalesM) ? needSalesM * 12 : NaN;
+
       $("needSalesM").textContent = Number.isFinite(needSalesM) ? yen(needSalesM) : "—";
       $("needSalesY").textContent = Number.isFinite(needSalesY) ? yen(needSalesY) : "—";
 
@@ -482,7 +561,7 @@
       save();
     }
 
-    // modal open (same screen)
+    // ====== modal open (same screen) ======
     let currentUrl = "";
     function openModal(title, url){
       currentUrl = url;
@@ -496,7 +575,6 @@
       currentUrl = "";
     }
 
-    // bind tool buttons
     document.querySelectorAll("[data-open]").forEach(btn=>{
       btn.addEventListener("click", ()=>{
         const key = btn.getAttribute("data-open");
@@ -522,7 +600,7 @@
       if(currentUrl) window.open(currentUrl, "_blank", "noopener,noreferrer");
     });
 
-    // copy
+    // ====== copy ======
     $("btnCopy").addEventListener("click", async ()=>{
       const feeDiff = num($("feeDiff").value);
       const cmr = num($("cmr").value);
@@ -539,9 +617,9 @@
       const needHours = (hourCost>0) ? (feeDiff/hourCost) : NaN;
 
       const text =
-`【納得のための整理（概算）】
+`【打ち手検討（概算）】
 ・差額（月）：${yen(feeDiff)}
-・限界利益率：${cmr ? (cmr + "%") : "—"}
+・限界利益率：${cmr ? (String(cmr) + "%") : "—"}
 ・必要売上：${Number.isFinite(needSalesM)?yen(needSalesM):"—"}/月（年 ${Number.isFinite(needSalesY)?yen(needSalesY):"—"}）
 ・年商比：${Number.isFinite(shareY)?pct(shareY):"—"}
 
@@ -559,20 +637,32 @@
       }
     });
 
-    // reset
+    // ====== print / PDF ======
+    $("btnPrint").addEventListener("click", ()=>{
+      // ブラウザの印刷ダイアログで「PDFとして保存」を選べばPDF化できます
+      window.print();
+    });
+
+    // ====== reset ======
     $("btnReset").addEventListener("click", ()=>{
       ["feeDiff","cmr","annualSales","monthlySales","avgPrice","hourCost"].forEach(id=>$(id).value="");
       localStorage.removeItem(KEY);
       render();
     });
 
-    // inputs
+    // ====== inputs -> render ======
     ["feeDiff","cmr","annualSales","monthlySales","avgPrice","hourCost"].forEach(id=>{
       $(id).addEventListener("input", render);
     });
 
     // init
     apply(load());
+    bindLiveFormatting();
+
+    // 初期値に対してもコンマ整形
+    document.querySelectorAll('input[data-format="int"]').forEach(formatIntInput);
+    document.querySelectorAll('input[data-format="decimal"]').forEach(formatDecimalInput);
+
     render();
   </script>
 </body>
