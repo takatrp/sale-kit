@@ -31,6 +31,7 @@
       line-height:1.55;
     }
     a{color:inherit}
+
     .top{
       position:sticky; top:0; z-index:10;
       background:rgba(246,248,251,.88);
@@ -46,7 +47,7 @@
       display:flex; align-items:center; gap:10px; min-width:0;
     }
 
-    /* ロゴ画像 */
+    /* 左上ロゴ（ロゴ.jpg） */
     .logo{
       width:34px; height:34px;
       border-radius:10px;
@@ -59,15 +60,12 @@
 
     .btxt{min-width:0}
 
-    /* タイトル */
     .bttl{
       font-weight:900;
       font-size:17px;
       line-height:1.15;
       letter-spacing:.02em;
     }
-
-    /* ★ここ：スクショ部分の文言を変更 */
     .bsub{
       font-size:12px;
       color:var(--muted);
@@ -91,6 +89,7 @@
     .btn:hover{transform:translateY(-1px); box-shadow:0 10px 18px rgba(20,40,50,.08); border-color:rgba(87,136,153,.35)}
     .btn.primary{background:var(--soft); border-color:rgba(87,136,153,.35)}
     .btn.ghost{background:transparent}
+
     .wrap{max-width:980px; margin:0 auto; padding:16px 14px 42px}
     .grid{display:grid; gap:12px}
     .card{
@@ -102,6 +101,7 @@
     }
     h2{margin:0 0 6px; font-size:18px}
     .p{margin:6px 0 0; color:var(--muted)}
+
     .talk{
       margin:10px 0 0;
       border:1px solid rgba(87,136,153,.28);
@@ -111,6 +111,7 @@
       color:var(--muted);
       font-size:12px;
     }
+
     .steps{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px}
     .chip{
       display:inline-flex; align-items:center; gap:8px;
@@ -123,8 +124,10 @@
       font-weight:800;
     }
     .chip b{color:var(--text)}
+
     .row{display:grid; grid-template-columns:1fr 1fr; gap:10px}
     @media (max-width:760px){ .row{grid-template-columns:1fr} }
+
     label{display:block; font-size:12px; color:var(--muted); margin:0 0 6px; font-weight:800}
     input, textarea{
       width:100%;
@@ -142,6 +145,7 @@
       box-shadow:0 0 0 4px rgba(87,136,153,.16);
     }
     .help{font-size:12px; color:var(--muted); margin-top:6px}
+
     .kpi{display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-top:10px}
     @media (max-width:760px){ .kpi{grid-template-columns:1fr} }
     .k{
@@ -152,6 +156,7 @@
     }
     .k .t{font-size:12px; color:var(--muted); font-weight:800}
     .k .v{font-size:18px; font-weight:900; margin-top:6px}
+
     .note{
       border:1px solid rgba(87,136,153,.28);
       background:rgba(87,136,153,.06);
@@ -225,6 +230,7 @@
     }
     .detailHead h3{margin:0; font-size:16px}
     .detailHead .mini{margin:4px 0 0; color:var(--muted); font-size:12px}
+
     .kpi2{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px}
     @media (max-width:760px){ .kpi2{grid-template-columns:1fr} }
     .k2{
@@ -288,7 +294,6 @@
   <div class="top">
     <div class="topin">
       <div class="brand">
-        <!-- 左上ロゴ -->
         <img class="logo" src="ロゴ.jpg" alt="ロゴ" />
         <div class="btxt">
           <div class="bttl">打ち手検討ツール</div>
@@ -332,7 +337,7 @@
             <div class="avgWrap">
               <div class="avgTitle">参考：産業ごとの全国平均</div>
               <div class="avgGrid" id="avgGrid"></div>
-              <!-- ★注記は削除（ご要望） -->
+              <!-- 注記は削除（ご要望） -->
             </div>
           </div>
         </div>
@@ -540,7 +545,7 @@
     // ====== リアルタイムコンマ入力（カーソル位置維持） ======
     function formatIntInput(el){
       const raw = String(el.value ?? "");
-      const caret = el.selectionStart ?? raw.length;
+      const caret = (el.selectionStart ?? raw.length);
       const digitsBefore = raw.slice(0, caret).replace(/[^\d]/g, "").length;
       const digits = raw.replace(/[^\d]/g, "");
       if(digits === ""){
@@ -550,19 +555,22 @@
       const formatted = digits.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
       el.value = formatted;
 
-      let newCaret = 0;
-      let count = 0;
-      while(newCaret < formatted.length && count < digitsBefore){
-        if(/\d/.test(formatted[newCaret])) count++;
-        newCaret++;
-      }
-      el.setSelectionRange(newCaret, newCaret);
+      // iOSでselectionStartが取れないことがあるのでガード
+      try{
+        let newCaret = 0;
+        let count = 0;
+        while(newCaret < formatted.length && count < digitsBefore){
+          if(/\d/.test(formatted[newCaret])) count++;
+          newCaret++;
+        }
+        el.setSelectionRange(newCaret, newCaret);
+      }catch(e){}
     }
 
-    // 小数入力：コンマ除去・小数点正規化、入力途中の "52." を維持
+    // 小数入力：コンマ除去・小数点正規化（入力途中の "52." を維持）
     function formatDecimalInput(el){
       const raw = String(el.value ?? "");
-      const caret = el.selectionStart ?? raw.length;
+      const caret = (el.selectionStart ?? raw.length);
       let normalized = raw.replace(/[,，\s]/g,'').replace(/[・]/g,'.');
       normalized = normalized.replace(/[^\d.]/g, "");
       const parts = normalized.split(".");
@@ -570,11 +578,13 @@
         normalized = parts[0] + "." + parts.slice(1).join("");
       }
       el.value = normalized;
-      const newPos = Math.min(caret, el.value.length);
-      el.setSelectionRange(newPos, newPos);
+      try{
+        const newPos = Math.min(caret, el.value.length);
+        el.setSelectionRange(newPos, newPos);
+      }catch(e){}
     }
 
-    // ★重複バインド防止
+    // 重複バインド防止
     function bindLiveFormatting(){
       document.querySelectorAll('input[data-format="int"]').forEach(el=>{
         if(el.dataset.boundInt === "1") return;
@@ -600,7 +610,7 @@
       try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){}
     }
 
-    // ====== URL引継ぎ（クエリ優先）& URLクリーン化 ======
+    // URL引継ぎ（クエリ優先）& URLクリーン化
     function applyFromQuery(){
       const sp = new URLSearchParams(location.search);
       const hasAny = sp.has("spendMonthly") || sp.has("cmr") || sp.has("annualSales") || sp.has("monthlySales") || sp.has("route");
@@ -613,14 +623,14 @@
 
       const r = sp.get("route");
       if(r==="price" || r==="volume" || r==="auto"){
-        setRoute(r, {fromQuery:true});
+        setRoute(r);
       }
 
       history.replaceState(null, "", location.pathname);
       return true;
     }
 
-    // ====== industry avg chips ======
+    // industry avg chips
     function buildAvgChips(){
       const grid = $("avgGrid");
       grid.innerHTML = "";
@@ -629,7 +639,6 @@
         b.type = "button";
         b.className = "avgBtn";
         b.dataset.avgKey = item.key;
-        b.dataset.avgValue = String(item.value);
         b.innerHTML = `<span class="lab">${item.label}</span><span>${item.value}%</span>`;
         b.addEventListener("click", ()=>{
           $("cmr").value = String(item.value);
@@ -651,7 +660,7 @@
       return a ? a.dataset.avgKey : "";
     }
 
-    // ====== state ======
+    // state
     let selectedRoute = "";
     let detailBuiltFor = "";
 
@@ -687,15 +696,15 @@
       if(v.freeMemo!=null) $("freeMemo").value = v.freeMemo;
 
       if(v.selectedRoute==="price" || v.selectedRoute==="volume" || v.selectedRoute==="auto"){
-        setRoute(v.selectedRoute, {restore:true});
+        setRoute(v.selectedRoute);
         if($("avgPriceInput") && v.avgPrice!=null) $("avgPriceInput").value = v.avgPrice;
         if($("hourCostInput") && v.hourCost!=null) $("hourCostInput").value = v.hourCost;
       }else{
-        setRoute("", {restore:true});
+        setRoute("");
       }
     }
 
-    // ====== compute ======
+    // compute
     function compute(){
       const spendMonthly = num($("spendMonthly").value);
       const cmr = num($("cmr").value);
@@ -710,26 +719,23 @@
       return { spendMonthly, cmr, annualSales, monthlySales, salesEqM, salesEqY, shareY, needPricePct };
     }
 
-    // ====== Step2 detail build/update ======
+    // Step2 detail build/update
     function buildRouteDetailUI(){
       if(!selectedRoute) return;
       if(detailBuiltFor === selectedRoute) return;
 
-      const detailTitle = $("detailTitle");
-      const detailSub   = $("detailSub");
       const inputA      = $("detailInputA");
       const inputB      = $("detailInputB");
       const kpi         = $("detailKpi");
-      const hint        = $("detailHint");
 
       inputA.innerHTML = "";
       inputB.innerHTML = "";
       kpi.innerHTML = "";
-      hint.textContent = "";
+      $("detailHint").textContent = "";
 
       if(selectedRoute === "price"){
-        detailTitle.textContent = "単価を上げる（深掘り）";
-        detailSub.textContent   = "月商に対して、どの程度の上乗せが必要かを目安で確認します。";
+        $("detailTitle").textContent = "単価を上げる（深掘り）";
+        $("detailSub").textContent   = "月商に対して、どの程度の上乗せが必要かを目安で確認します。";
 
         inputA.innerHTML = `
           <label>月商（円 / 任意）</label>
@@ -751,12 +757,12 @@
           </div>
         `;
 
-        hint.textContent = "次に『どの商品/客層/契約が対象か』『いつから実施するか』を決めると、実行に落ちます。";
+        $("detailHint").textContent = "次に『どの商品/客層/契約が対象か』『いつから実施するか』を決めると、実行に落ちます。";
       }
 
       if(selectedRoute === "volume"){
-        detailTitle.textContent = "数量を上げる（深掘り）";
-        detailSub.textContent   = "平均単価から、必要な追加件数の目安を確認します。";
+        $("detailTitle").textContent = "数量を上げる（深掘り）";
+        $("detailSub").textContent   = "平均単価から、必要な追加件数の目安を確認します。";
 
         inputA.innerHTML = `
           <label for="avgPriceInput">平均単価（円 / 任意）</label>
@@ -779,7 +785,7 @@
           </div>
         `;
 
-        hint.textContent = "『受注の入口』『現場の処理能力』『継続率』のどこを強化するかが実行の要点になります。";
+        $("detailHint").textContent = "『受注の入口』『現場の処理能力』『継続率』のどこを強化するかが実行の要点になります。";
 
         const st = load();
         if(st && st.avgPrice != null) $("avgPriceInput").value = st.avgPrice;
@@ -794,8 +800,8 @@
       }
 
       if(selectedRoute === "auto"){
-        detailTitle.textContent = "経理プロセスを自動化する（深掘り）";
-        detailSub.textContent   = "支出額を“削減できる時間”に置き換えて、回収の目安を確認します。";
+        $("detailTitle").textContent = "経理プロセスを自動化する（深掘り）";
+        $("detailSub").textContent   = "支出額を“削減できる時間”に置き換えて、回収の目安を確認します。";
 
         inputA.innerHTML = `
           <label for="hourCostInput">時間単価（円 / 時）</label>
@@ -818,7 +824,7 @@
           </div>
         `;
 
-        hint.textContent = "『どの作業を削るか（入力/請求/回収/証憑）』『運用ルール』まで決めると、再現性が出ます。";
+        $("detailHint").textContent = "『どの作業を削るか（入力/請求/回収/証憑）』『運用ルール』まで決めると、再現性が出ます。";
 
         const st = load();
         if(st && st.hourCost != null) $("hourCostInput").value = st.hourCost;
@@ -860,8 +866,7 @@
       }
     }
 
-    // ====== Step2 route switching ======
-    function setRoute(route, opt={}){
+    function setRoute(route){
       selectedRoute = route || "";
 
       if(!selectedRoute){
@@ -880,7 +885,6 @@
       persist();
     }
 
-    // ====== render ======
     function render(){
       const c = compute();
 
@@ -902,8 +906,16 @@
       persist();
     }
 
-    // ====== modal ======
+    // modal
     let currentUrl = "";
+    function getToolTitle(){
+      return selectedRoute==="price" ? "価格改定ツール" :
+             selectedRoute==="volume" ? "変動PLツール" :
+             selectedRoute==="auto" ? "自動化効果ツール" : "ツール";
+    }
+    function getToolUrl(){
+      return selectedRoute ? TOOL_URLS[selectedRoute] : "";
+    }
     function openModal(title, url){
       currentUrl = url;
       $("modalTitle").textContent = title + "（同一画面）";
@@ -916,16 +928,7 @@
       currentUrl = "";
     }
 
-    function getToolTitle(){
-      return selectedRoute==="price" ? "価格改定ツール" :
-             selectedRoute==="volume" ? "変動PLツール" :
-             selectedRoute==="auto" ? "自動化効果ツール" : "ツール";
-    }
-    function getToolUrl(){
-      return selectedRoute ? TOOL_URLS[selectedRoute] : "";
-    }
-
-    // ====== init ======
+    // init
     buildAvgChips();
 
     const fromQuery = applyFromQuery();
@@ -938,7 +941,6 @@
     document.querySelectorAll('input[data-format="int"]').forEach(formatIntInput);
     document.querySelectorAll('input[data-format="decimal"]').forEach(formatDecimalInput);
 
-    // ====== events ======
     ["spendMonthly","cmr","annualSales","monthlySales","startDate","targetScope","checkKpi","freeMemo"].forEach(id=>{
       $(id).addEventListener("input", render);
     });
@@ -969,7 +971,11 @@
 
     $("btnClose").addEventListener("click", closeModal);
     $("modalBack").addEventListener("click", (e)=>{ if(e.target === $("modalBack")) closeModal(); });
-    window.addEventListener("keydown", (e)=>{ if(e.key==="Escape")) closeModal(); });
+
+    // ★ここが前回の致命傷：構文エラーを修正
+    window.addEventListener("keydown", (e)=>{
+      if(e.key === "Escape") closeModal();
+    });
 
     $("btnOpenNewTab2").addEventListener("click", ()=>{
       if(currentUrl) window.open(currentUrl, "_blank", "noopener,noreferrer");
