@@ -3,8 +3,12 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>打ち手検討ツール｜売上換算 → 打ち手 → 次の一手</title>
+  <title>打ち手検討ツール｜支出額を売上換算 → 打ち手を検討</title>
   <meta name="description" content="支出額を限界利益率で売上換算し、単価・数量・自動化のどこで回収するかを同じ画面で整理します。" />
+
+  <!-- favicon -->
+  <link rel="icon" type="image/png" sizes="192x192" href="favicon192192.png">
+  <link rel="apple-touch-icon" sizes="192x192" href="favicon192192.png">
 
   <style>
     :root{
@@ -41,26 +45,35 @@
     .brand{
       display:flex; align-items:center; gap:10px; min-width:0;
     }
+
+    /* ロゴ画像 */
     .logo{
-      width:34px; height:34px; border-radius:10px;
-      background:linear-gradient(180deg, rgba(87,136,153,.30), rgba(87,136,153,.12));
+      width:34px; height:34px;
+      border-radius:10px;
       border:1px solid rgba(87,136,153,.35);
+      background:#fff;
+      object-fit:cover;
+      display:block;
+      flex:0 0 auto;
     }
+
     .btxt{min-width:0}
 
-    /* ★ここ：タイトルを大きく */
+    /* タイトル */
     .bttl{
       font-weight:900;
-      font-size:17px;       /* 14px → 17px */
+      font-size:17px;
       line-height:1.15;
       letter-spacing:.02em;
     }
 
+    /* ★ここ：スクショ部分の文言を変更 */
     .bsub{
       font-size:12px;
       color:var(--muted);
       white-space:nowrap; overflow:hidden; text-overflow:ellipsis
     }
+
     .btns{display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end}
     .btn{
       appearance:none;
@@ -173,7 +186,6 @@
     .avgBtn:hover{transform:translateY(-1px); box-shadow:0 10px 18px rgba(20,40,50,.08); border-color:rgba(87,136,153,.35)}
     .avgBtn .lab{color:var(--muted); font-weight:800; font-size:12px}
     .avgBtn.active{border-color:rgba(87,136,153,.65); background:rgba(87,136,153,.12)}
-    .avgFoot{margin-top:8px; color:var(--muted); font-size:12px}
 
     /* Step2 chooser */
     .chooser{
@@ -276,10 +288,11 @@
   <div class="top">
     <div class="topin">
       <div class="brand">
-        <div class="logo" aria-hidden="true"></div>
+        <!-- 左上ロゴ -->
+        <img class="logo" src="ロゴ.jpg" alt="ロゴ" />
         <div class="btxt">
           <div class="bttl">打ち手検討ツール</div>
-          <div class="bsub">売上換算 → 打ち手 → 次の一手（印刷してお渡しできる体裁）</div>
+          <div class="bsub">支出額を売上換算 → 打ち手を検討</div>
         </div>
       </div>
       <div class="btns">
@@ -319,7 +332,7 @@
             <div class="avgWrap">
               <div class="avgTitle">参考：産業ごとの全国平均</div>
               <div class="avgGrid" id="avgGrid"></div>
-              <div class="avgFoot">※参考値（添付画像の値を反映）。貴社の実態に合わせて調整してください。</div>
+              <!-- ★注記は削除（ご要望） -->
             </div>
           </div>
         </div>
@@ -362,12 +375,10 @@
         <h2>2. 打ち手を検討</h2>
         <div class="p">売上換算額を「どうやって作るか」を3つの方向から検討します。</div>
 
-        <!-- 話し方メモ -->
         <div class="talk" id="talkMemo">
           「売上換算（支出額 ÷ 限界利益率）で“必要な売上”を揃えました。次に、これを <b>単価</b>・<b>数量</b>・<b>自動化</b> のどの方向で回収するかを一緒に決めましょう。」
         </div>
 
-        <!-- chooser -->
         <div id="routeChooser" class="chooser" aria-label="打ち手の選択">
           <div class="bigCard">
             <div class="grow">
@@ -394,7 +405,6 @@
           </div>
         </div>
 
-        <!-- detail -->
         <div id="routeDetail" class="detail" style="display:none;">
           <div class="detailHead">
             <div>
@@ -564,7 +574,7 @@
       el.setSelectionRange(newPos, newPos);
     }
 
-    // ★重複バインド防止（入力が効かない原因の一部を潰す）
+    // ★重複バインド防止
     function bindLiveFormatting(){
       document.querySelectorAll('input[data-format="int"]').forEach(el=>{
         if(el.dataset.boundInt === "1") return;
@@ -642,8 +652,8 @@
     }
 
     // ====== state ======
-    let selectedRoute = "";   // "price" | "volume" | "auto" | ""
-    let detailBuiltFor = "";  // 深掘りUIを構築済みのルート
+    let selectedRoute = "";
+    let detailBuiltFor = "";
 
     function getState(){
       return {
@@ -678,7 +688,6 @@
 
       if(v.selectedRoute==="price" || v.selectedRoute==="volume" || v.selectedRoute==="auto"){
         setRoute(v.selectedRoute, {restore:true});
-        // ルート入力が生成された後に復元
         if($("avgPriceInput") && v.avgPrice!=null) $("avgPriceInput").value = v.avgPrice;
         if($("hourCostInput") && v.hourCost!=null) $("hourCostInput").value = v.hourCost;
       }else{
@@ -686,7 +695,7 @@
       }
     }
 
-    // ====== compute (step1) ======
+    // ====== compute ======
     function compute(){
       const spendMonthly = num($("spendMonthly").value);
       const cmr = num($("cmr").value);
@@ -701,7 +710,7 @@
       return { spendMonthly, cmr, annualSales, monthlySales, salesEqM, salesEqY, shareY, needPricePct };
     }
 
-    // ====== Step2: build UI once, then only update numbers ======
+    // ====== Step2 detail build/update ======
     function buildRouteDetailUI(){
       if(!selectedRoute) return;
       if(detailBuiltFor === selectedRoute) return;
@@ -772,14 +781,12 @@
 
         hint.textContent = "『受注の入口』『現場の処理能力』『継続率』のどこを強化するかが実行の要点になります。";
 
-        // localStorage復元（route入力だけ）
         const st = load();
         if(st && st.avgPrice != null) $("avgPriceInput").value = st.avgPrice;
 
         bindLiveFormatting();
         formatIntInput($("avgPriceInput"));
 
-        // ★render()は呼ばない（入力欄を作り直さない）
         $("avgPriceInput").addEventListener("input", ()=>{
           updateRouteDetailKPIs();
           persist();
@@ -819,7 +826,6 @@
         bindLiveFormatting();
         formatIntInput($("hourCostInput"));
 
-        // ★render()は呼ばない
         $("hourCostInput").addEventListener("input", ()=>{
           updateRouteDetailKPIs();
           persist();
@@ -896,7 +902,7 @@
       persist();
     }
 
-    // ====== modal open/close ======
+    // ====== modal ======
     let currentUrl = "";
     function openModal(title, url){
       currentUrl = url;
@@ -963,7 +969,7 @@
 
     $("btnClose").addEventListener("click", closeModal);
     $("modalBack").addEventListener("click", (e)=>{ if(e.target === $("modalBack")) closeModal(); });
-    window.addEventListener("keydown", (e)=>{ if(e.key==="Escape") closeModal(); });
+    window.addEventListener("keydown", (e)=>{ if(e.key==="Escape")) closeModal(); });
 
     $("btnOpenNewTab2").addEventListener("click", ()=>{
       if(currentUrl) window.open(currentUrl, "_blank", "noopener,noreferrer");
