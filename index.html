@@ -47,8 +47,20 @@
       border:1px solid rgba(87,136,153,.35);
     }
     .btxt{min-width:0}
-    .bttl{font-weight:900; font-size:14px}
-    .bsub{font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+
+    /* ★ここ：タイトルを大きく */
+    .bttl{
+      font-weight:900;
+      font-size:17px;       /* 14px → 17px */
+      line-height:1.15;
+      letter-spacing:.02em;
+    }
+
+    .bsub{
+      font-size:12px;
+      color:var(--muted);
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis
+    }
     .btns{display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end}
     .btn{
       appearance:none;
@@ -101,7 +113,7 @@
     .row{display:grid; grid-template-columns:1fr 1fr; gap:10px}
     @media (max-width:760px){ .row{grid-template-columns:1fr} }
     label{display:block; font-size:12px; color:var(--muted); margin:0 0 6px; font-weight:800}
-    input, textarea, select{
+    input, textarea{
       width:100%;
       padding:12px 12px;
       border-radius:12px;
@@ -213,7 +225,7 @@
     .k2 .v{font-size:16px; font-weight:900; margin-top:6px}
     .mutedLine{margin-top:8px; color:var(--muted); font-size:12px}
 
-    /* modal (same screen) */
+    /* modal */
     .modalBack{
       position:fixed; inset:0; z-index:100;
       background:rgba(10,20,25,.35);
@@ -246,9 +258,7 @@
       font-size:12px;
       background:#fff;
     }
-    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
 
-    /* print */
     @media print{
       body{background:#fff}
       .top{position:static; background:#fff; backdrop-filter:none}
@@ -352,7 +362,7 @@
         <h2>2. 打ち手を検討</h2>
         <div class="p">売上換算額を「どうやって作るか」を3つの方向から検討します。</div>
 
-        <!-- 話し方メモ（タイトル直下へ移動） -->
+        <!-- 話し方メモ -->
         <div class="talk" id="talkMemo">
           「売上換算（支出額 ÷ 限界利益率）で“必要な売上”を揃えました。次に、これを <b>単価</b>・<b>数量</b>・<b>自動化</b> のどの方向で回収するかを一緒に決めましょう。」
         </div>
@@ -443,7 +453,7 @@
 
         <div style="margin-top:10px;">
           <label>自由記入（決定事項 / 宿題 / メモ）</label>
-          <textarea id="freeMemo" placeholder="例：単価改定の対象と根拠、実施手順、担当、期限、次回までの宿題、想定リスクと対策など"></textarea>
+          <textarea id="freeMemo" placeholder="例：対象、実施手順、担当、期限、想定リスクと対策、次回までの宿題など"></textarea>
         </div>
       </section>
 
@@ -479,18 +489,17 @@
 
     // ====== 参考：産業ごとの全国平均（添付画像の値） ======
     const INDUSTRY_AVG = [
-      { key:"all", label:"全産業", value:43.6 },
-      { key:"fish", label:"漁業", value:64.6 },
+      { key:"all",   label:"全産業", value:43.6 },
+      { key:"fish",  label:"漁業",   value:64.6 },
       { key:"const", label:"建設業", value:39.9 },
-      { key:"mfg", label:"製造業", value:44.8 },
-      { key:"wh", label:"卸売業", value:20.5 },
-      { key:"rt", label:"小売業", value:32.0 },
+      { key:"mfg",   label:"製造業", value:44.8 },
+      { key:"wh",    label:"卸売業", value:20.5 },
+      { key:"rt",    label:"小売業", value:32.0 },
       { key:"hotel", label:"宿泊業", value:79.2 },
-      { key:"food", label:"飲食業", value:64.1 },
+      { key:"food",  label:"飲食業", value:64.1 },
     ];
 
     const KEY = "mk_action_tool_v2";
-
     const $ = (id)=>document.getElementById(id);
 
     function normalizeDecimalText(s){
@@ -555,12 +564,17 @@
       el.setSelectionRange(newPos, newPos);
     }
 
+    // ★重複バインド防止（入力が効かない原因の一部を潰す）
     function bindLiveFormatting(){
       document.querySelectorAll('input[data-format="int"]').forEach(el=>{
+        if(el.dataset.boundInt === "1") return;
+        el.dataset.boundInt = "1";
         el.addEventListener("input", ()=>formatIntInput(el));
         el.addEventListener("blur",  ()=>formatIntInput(el));
       });
       document.querySelectorAll('input[data-format="decimal"]').forEach(el=>{
+        if(el.dataset.boundDec === "1") return;
+        el.dataset.boundDec = "1";
         el.addEventListener("input", ()=>formatDecimalInput(el));
         el.addEventListener("blur",  ()=>formatDecimalInput(el));
       });
@@ -592,7 +606,6 @@
         setRoute(r, {fromQuery:true});
       }
 
-      // クエリを残さない（閲覧時に数字が見えないようにする）
       history.replaceState(null, "", location.pathname);
       return true;
     }
@@ -623,9 +636,15 @@
         b.classList.toggle("active", b.dataset.avgKey === key);
       });
     }
+    function getActiveAvgKey(){
+      const a = document.querySelector(".avgBtn.active");
+      return a ? a.dataset.avgKey : "";
+    }
 
     // ====== state ======
-    let selectedRoute = ""; // "price" | "volume" | "auto" | ""
+    let selectedRoute = "";   // "price" | "volume" | "auto" | ""
+    let detailBuiltFor = "";  // 深掘りUIを構築済みのルート
+
     function getState(){
       return {
         spendMonthly: $("spendMonthly").value,
@@ -633,49 +652,41 @@
         annualSales: $("annualSales").value,
         monthlySales: $("monthlySales").value,
         selectedRoute,
-        // step3 fields
         startDate: $("startDate").value,
         targetScope: $("targetScope").value,
         checkKpi: $("checkKpi").value,
         freeMemo: $("freeMemo").value,
-        // route specific (keep in state via current DOM if exists)
         avgPrice: $("avgPriceInput") ? $("avgPriceInput").value : "",
         hourCost: $("hourCostInput") ? $("hourCostInput").value : "",
         activeAvgKey: getActiveAvgKey()
       };
     }
-    function persist(){
-      save(getState());
-    }
+    function persist(){ save(getState()); }
+
     function restore(v){
       if(v.spendMonthly!=null) $("spendMonthly").value = v.spendMonthly;
       if(v.cmr!=null) $("cmr").value = v.cmr;
       if(v.annualSales!=null) $("annualSales").value = v.annualSales;
       if(v.monthlySales!=null) $("monthlySales").value = v.monthlySales;
 
-      if(v.selectedRoute==="price" || v.selectedRoute==="volume" || v.selectedRoute==="auto"){
-        setRoute(v.selectedRoute, {silent:true});
-      }else{
-        setRoute("", {silent:true});
-      }
+      if(v.activeAvgKey) setActiveAvg(v.activeAvgKey);
 
       if(v.startDate!=null) $("startDate").value = v.startDate;
       if(v.targetScope!=null) $("targetScope").value = v.targetScope;
       if(v.checkKpi!=null) $("checkKpi").value = v.checkKpi;
       if(v.freeMemo!=null) $("freeMemo").value = v.freeMemo;
 
-      if(v.activeAvgKey) setActiveAvg(v.activeAvgKey);
-
-      // route specific restore (after route created)
-      if(v.selectedRoute && v.avgPrice!=null && $("avgPriceInput")) $("avgPriceInput").value = v.avgPrice;
-      if(v.selectedRoute && v.hourCost!=null && $("hourCostInput")) $("hourCostInput").value = v.hourCost;
+      if(v.selectedRoute==="price" || v.selectedRoute==="volume" || v.selectedRoute==="auto"){
+        setRoute(v.selectedRoute, {restore:true});
+        // ルート入力が生成された後に復元
+        if($("avgPriceInput") && v.avgPrice!=null) $("avgPriceInput").value = v.avgPrice;
+        if($("hourCostInput") && v.hourCost!=null) $("hourCostInput").value = v.hourCost;
+      }else{
+        setRoute("", {restore:true});
+      }
     }
-    function getActiveAvgKey(){
-      const a = document.querySelector(".avgBtn.active");
-      return a ? a.dataset.avgKey : "";
-    }
 
-    // ====== compute ======
+    // ====== compute (step1) ======
     function compute(){
       const spendMonthly = num($("spendMonthly").value);
       const cmr = num($("cmr").value);
@@ -690,54 +701,18 @@
       return { spendMonthly, cmr, annualSales, monthlySales, salesEqM, salesEqY, shareY, needPricePct };
     }
 
-    function render(){
-      const c = compute();
+    // ====== Step2: build UI once, then only update numbers ======
+    function buildRouteDetailUI(){
+      if(!selectedRoute) return;
+      if(detailBuiltFor === selectedRoute) return;
 
-      $("salesEqM").textContent = Number.isFinite(c.salesEqM) ? yen(c.salesEqM) : "—";
-      $("salesEqY").textContent = Number.isFinite(c.salesEqY) ? yen(c.salesEqY) : "—";
-      $("shareY").textContent = Number.isFinite(c.shareY) ? pct1(c.shareY) : "—";
-
-      // step3 selected route label
-      $("selectedRouteLabel").value =
-        selectedRoute==="price" ? "単価を上げる" :
-        selectedRoute==="volume" ? "数量を上げる" :
-        selectedRoute==="auto" ? "経理プロセスを自動化する" :
-        "（未選択）";
-
-      // route details update
-      if(selectedRoute){
-        renderRouteDetail();
-      }
-
-      persist();
-    }
-
-    // ====== Step2 branching ======
-    function setRoute(route, opt={}){
-      selectedRoute = route || "";
-      if(!selectedRoute){
-        $("routeChooser").style.display = "grid";
-        $("routeDetail").style.display = "none";
-        $("selectedRouteLabel").value = "（未選択）";
-        persist();
-        return;
-      }
-      $("routeChooser").style.display = "none";
-      $("routeDetail").style.display = "block";
-      if(!opt.silent) renderRouteDetail();
-      persist();
-    }
-
-    function renderRouteDetail(){
-      const c = compute();
       const detailTitle = $("detailTitle");
-      const detailSub = $("detailSub");
-      const inputA = $("detailInputA");
-      const inputB = $("detailInputB");
-      const kpi = $("detailKpi");
-      const hint = $("detailHint");
+      const detailSub   = $("detailSub");
+      const inputA      = $("detailInputA");
+      const inputB      = $("detailInputB");
+      const kpi         = $("detailKpi");
+      const hint        = $("detailHint");
 
-      // clear
       inputA.innerHTML = "";
       inputB.innerHTML = "";
       kpi.innerHTML = "";
@@ -745,10 +720,10 @@
 
       if(selectedRoute === "price"){
         detailTitle.textContent = "単価を上げる（深掘り）";
-        detailSub.textContent = "月商に対して、どの程度の上乗せが必要かを目安で確認します。";
+        detailSub.textContent   = "月商に対して、どの程度の上乗せが必要かを目安で確認します。";
 
         inputA.innerHTML = `
-          <label for="monthlySales">月商（円 / 任意）</label>
+          <label>月商（円 / 任意）</label>
           <div class="help">※上で入力済みならそのまま使います。未入力なら、概算でも入力してください。</div>
         `;
         inputB.innerHTML = `
@@ -756,21 +731,23 @@
           <div class="help">値付け・提供価値・客層の見直しで、同じ稼働でも利益を作りやすい方向です。</div>
         `;
 
-        const v1 = document.createElement("div");
-        v1.className = "k2";
-        v1.innerHTML = `<div class="t">売上換算額（円 / 月）</div><div class="v">${Number.isFinite(c.salesEqM)?yen(c.salesEqM):"—"}</div>`;
-        const v2 = document.createElement("div");
-        v2.className = "k2";
-        v2.innerHTML = `<div class="t">必要な上乗せ率（%）※月商入力時</div><div class="v">${Number.isFinite(c.needPricePct)?pct1(c.needPricePct):"—"}</div>`;
-        kpi.appendChild(v1);
-        kpi.appendChild(v2);
+        kpi.innerHTML = `
+          <div class="k2">
+            <div class="t">売上換算額（円 / 月）</div>
+            <div class="v" id="kpiSalesEqM">—</div>
+          </div>
+          <div class="k2">
+            <div class="t">必要な上乗せ率（%）※月商入力時</div>
+            <div class="v" id="kpiNeedPricePct">—</div>
+          </div>
+        `;
 
         hint.textContent = "次に『どの商品/客層/契約が対象か』『いつから実施するか』を決めると、実行に落ちます。";
       }
 
       if(selectedRoute === "volume"){
         detailTitle.textContent = "数量を上げる（深掘り）";
-        detailSub.textContent = "平均単価から、必要な追加件数の目安を確認します。";
+        detailSub.textContent   = "平均単価から、必要な追加件数の目安を確認します。";
 
         inputA.innerHTML = `
           <label for="avgPriceInput">平均単価（円 / 任意）</label>
@@ -782,31 +759,36 @@
           <div class="help">件数を増やす方向は、稼働・キャパ・現場の体制とセットで考えると現実的です。</div>
         `;
 
-        bindLiveFormatting(); // newly created input
-
-        const avgPrice = $("avgPriceInput") ? num($("avgPriceInput").value) : 0;
-        const needUnits = (avgPrice>0 && Number.isFinite(c.salesEqM)) ? (c.salesEqM/avgPrice) : NaN;
-
-        const v1 = document.createElement("div");
-        v1.className = "k2";
-        v1.innerHTML = `<div class="t">売上換算額（円 / 月）</div><div class="v">${Number.isFinite(c.salesEqM)?yen(c.salesEqM):"—"}</div>`;
-        const v2 = document.createElement("div");
-        v2.className = "k2";
-        v2.innerHTML = `<div class="t">必要な追加件数（件/個 など / 月）</div><div class="v">${Number.isFinite(needUnits)?(ceil1(needUnits)+" /月"):"—"}</div>`;
-        kpi.appendChild(v1);
-        kpi.appendChild(v2);
-
-        // re-render on input
-        if($("avgPriceInput")){
-          $("avgPriceInput").addEventListener("input", render);
-        }
+        kpi.innerHTML = `
+          <div class="k2">
+            <div class="t">売上換算額（円 / 月）</div>
+            <div class="v" id="kpiSalesEqM">—</div>
+          </div>
+          <div class="k2">
+            <div class="t">必要な追加件数（件/個 など / 月）</div>
+            <div class="v" id="kpiNeedUnits">—</div>
+          </div>
+        `;
 
         hint.textContent = "『受注の入口』『現場の処理能力』『継続率』のどこを強化するかが実行の要点になります。";
+
+        // localStorage復元（route入力だけ）
+        const st = load();
+        if(st && st.avgPrice != null) $("avgPriceInput").value = st.avgPrice;
+
+        bindLiveFormatting();
+        formatIntInput($("avgPriceInput"));
+
+        // ★render()は呼ばない（入力欄を作り直さない）
+        $("avgPriceInput").addEventListener("input", ()=>{
+          updateRouteDetailKPIs();
+          persist();
+        });
       }
 
       if(selectedRoute === "auto"){
         detailTitle.textContent = "経理プロセスを自動化する（深掘り）";
-        detailSub.textContent = "支出額を“削減できる時間”に置き換えて、回収の目安を確認します。";
+        detailSub.textContent   = "支出額を“削減できる時間”に置き換えて、回収の目安を確認します。";
 
         inputA.innerHTML = `
           <label for="hourCostInput">時間単価（円 / 時）</label>
@@ -818,29 +800,103 @@
           <div class="help">“空いた時間”を、単価/数量を上げる活動へ移すことで効果が大きくなります。</div>
         `;
 
-        bindLiveFormatting(); // newly created input
-
-        const hourCost = $("hourCostInput") ? num($("hourCostInput").value) : 0;
-        const needHours = (hourCost>0) ? (c.spendMonthly/hourCost) : NaN;
-
-        const v1 = document.createElement("div");
-        v1.className = "k2";
-        v1.innerHTML = `<div class="t">今回検討する支出額（円 / 月）</div><div class="v">${yen(c.spendMonthly)}</div>`;
-        const v2 = document.createElement("div");
-        v2.className = "k2";
-        v2.innerHTML = `<div class="t">回収に必要な削減時間（h / 月）</div><div class="v">${Number.isFinite(needHours)?(ceil1(needHours)+" h/月"):"—"}</div>`;
-        kpi.appendChild(v1);
-        kpi.appendChild(v2);
-
-        if($("hourCostInput")){
-          $("hourCostInput").addEventListener("input", render);
-        }
+        kpi.innerHTML = `
+          <div class="k2">
+            <div class="t">今回検討する支出額（円 / 月）</div>
+            <div class="v" id="kpiSpendMonthly">—</div>
+          </div>
+          <div class="k2">
+            <div class="t">回収に必要な削減時間（h / 月）</div>
+            <div class="v" id="kpiNeedHours">—</div>
+          </div>
+        `;
 
         hint.textContent = "『どの作業を削るか（入力/請求/回収/証憑）』『運用ルール』まで決めると、再現性が出ます。";
+
+        const st = load();
+        if(st && st.hourCost != null) $("hourCostInput").value = st.hourCost;
+
+        bindLiveFormatting();
+        formatIntInput($("hourCostInput"));
+
+        // ★render()は呼ばない
+        $("hourCostInput").addEventListener("input", ()=>{
+          updateRouteDetailKPIs();
+          persist();
+        });
+      }
+
+      detailBuiltFor = selectedRoute;
+    }
+
+    function updateRouteDetailKPIs(){
+      if(!selectedRoute) return;
+
+      const c = compute();
+
+      if($("kpiSalesEqM")) $("kpiSalesEqM").textContent = Number.isFinite(c.salesEqM) ? yen(c.salesEqM) : "—";
+
+      if(selectedRoute === "price"){
+        if($("kpiNeedPricePct")) $("kpiNeedPricePct").textContent = Number.isFinite(c.needPricePct) ? pct1(c.needPricePct) : "—";
+      }
+
+      if(selectedRoute === "volume"){
+        const avg = $("avgPriceInput") ? num($("avgPriceInput").value) : 0;
+        const needUnits = (avg>0 && Number.isFinite(c.salesEqM)) ? (c.salesEqM/avg) : NaN;
+        if($("kpiNeedUnits")) $("kpiNeedUnits").textContent = Number.isFinite(needUnits) ? (ceil1(needUnits)+" /月") : "—";
+      }
+
+      if(selectedRoute === "auto"){
+        const hour = $("hourCostInput") ? num($("hourCostInput").value) : 0;
+        const needHours = (hour>0) ? (c.spendMonthly/hour) : NaN;
+        if($("kpiSpendMonthly")) $("kpiSpendMonthly").textContent = yen(c.spendMonthly);
+        if($("kpiNeedHours")) $("kpiNeedHours").textContent = Number.isFinite(needHours) ? (ceil1(needHours)+" h/月") : "—";
       }
     }
 
-    // ====== modal open ======
+    // ====== Step2 route switching ======
+    function setRoute(route, opt={}){
+      selectedRoute = route || "";
+
+      if(!selectedRoute){
+        $("routeChooser").style.display = "grid";
+        $("routeDetail").style.display = "none";
+        detailBuiltFor = "";
+        persist();
+        return;
+      }
+
+      $("routeChooser").style.display = "none";
+      $("routeDetail").style.display = "block";
+
+      buildRouteDetailUI();
+      updateRouteDetailKPIs();
+      persist();
+    }
+
+    // ====== render ======
+    function render(){
+      const c = compute();
+
+      $("salesEqM").textContent = Number.isFinite(c.salesEqM) ? yen(c.salesEqM) : "—";
+      $("salesEqY").textContent = Number.isFinite(c.salesEqY) ? yen(c.salesEqY) : "—";
+      $("shareY").textContent = Number.isFinite(c.shareY) ? pct1(c.shareY) : "—";
+
+      $("selectedRouteLabel").value =
+        selectedRoute==="price" ? "単価を上げる" :
+        selectedRoute==="volume" ? "数量を上げる" :
+        selectedRoute==="auto" ? "経理プロセスを自動化する" :
+        "（未選択）";
+
+      if(selectedRoute){
+        buildRouteDetailUI();
+        updateRouteDetailKPIs();
+      }
+
+      persist();
+    }
+
+    // ====== modal open/close ======
     let currentUrl = "";
     function openModal(title, url){
       currentUrl = url;
@@ -854,7 +910,6 @@
       currentUrl = "";
     }
 
-    // ====== open tool buttons ======
     function getToolTitle(){
       return selectedRoute==="price" ? "価格改定ツール" :
              selectedRoute==="volume" ? "変動PLツール" :
@@ -863,6 +918,37 @@
     function getToolUrl(){
       return selectedRoute ? TOOL_URLS[selectedRoute] : "";
     }
+
+    // ====== init ======
+    buildAvgChips();
+
+    const fromQuery = applyFromQuery();
+    if(!fromQuery){
+      const st = load();
+      restore(st);
+    }
+
+    bindLiveFormatting();
+    document.querySelectorAll('input[data-format="int"]').forEach(formatIntInput);
+    document.querySelectorAll('input[data-format="decimal"]').forEach(formatDecimalInput);
+
+    // ====== events ======
+    ["spendMonthly","cmr","annualSales","monthlySales","startDate","targetScope","checkKpi","freeMemo"].forEach(id=>{
+      $(id).addEventListener("input", render);
+    });
+
+    document.querySelectorAll("[data-pick]").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        const r = btn.getAttribute("data-pick");
+        setRoute(r);
+        render();
+      });
+    });
+
+    $("btnBack").addEventListener("click", ()=>{
+      setRoute("");
+      render();
+    });
 
     $("btnOpenTool").addEventListener("click", ()=>{
       const url = getToolUrl();
@@ -883,25 +969,8 @@
       if(currentUrl) window.open(currentUrl, "_blank", "noopener,noreferrer");
     });
 
-    // ====== pick route buttons ======
-    document.querySelectorAll("[data-pick]").forEach(btn=>{
-      btn.addEventListener("click", ()=>{
-        const r = btn.getAttribute("data-pick");
-        setRoute(r);
-        render();
-      });
-    });
-    $("btnBack").addEventListener("click", ()=>{
-      setRoute("");
-      render();
-    });
+    $("btnPrint").addEventListener("click", ()=>window.print());
 
-    // ====== print / PDF ======
-    $("btnPrint").addEventListener("click", ()=>{
-      window.print();
-    });
-
-    // ====== copy ======
     $("btnCopy").addEventListener("click", async ()=>{
       const c = compute();
       const routeLabel =
@@ -910,7 +979,6 @@
         selectedRoute==="auto" ? "経理プロセスを自動化する" :
         "（未選択）";
 
-      // route specific
       let routeDetail = "";
       if(selectedRoute==="price"){
         routeDetail = `・必要な上乗せ率（%）※月商入力時：${Number.isFinite(c.needPricePct)?pct1(c.needPricePct):"—"}`;
@@ -930,7 +998,7 @@
 `【打ち手検討（概算）】
 ■1. 売上換算
 ・今回検討する支出額（月）：${yen(c.spendMonthly)}
-・限界利益率：${c.cmr ? (String(c.cmr) + "%") : "—"}
+・限界利益率：${$("cmr").value ? ($("cmr").value + "%") : "—"}
 ・売上換算額：${Number.isFinite(c.salesEqM)?yen(c.salesEqM):"—"}/月（年 ${Number.isFinite(c.salesEqY)?yen(c.salesEqY):"—"}）
 ・年商比：${Number.isFinite(c.shareY)?pct1(c.shareY):"—"}
 
@@ -954,33 +1022,13 @@ ${routeDetail ? routeDetail : ""}
       }
     });
 
-    // ====== reset ======
     $("btnReset").addEventListener("click", ()=>{
       ["spendMonthly","cmr","annualSales","monthlySales","startDate","targetScope","checkKpi","freeMemo"].forEach(id=>$(id).value="");
       setActiveAvg("");
-      setRoute("", {silent:true});
+      setRoute("");
       localStorage.removeItem(KEY);
       render();
     });
-
-    // ====== inputs -> render ======
-    ["spendMonthly","cmr","annualSales","monthlySales","startDate","targetScope","checkKpi","freeMemo"].forEach(id=>{
-      $(id).addEventListener("input", render);
-    });
-
-    // ====== init ======
-    buildAvgChips();
-
-    const fromQuery = applyFromQuery();
-    if(!fromQuery){
-      const st = load();
-      restore(st);
-    }
-
-    bindLiveFormatting();
-    // 初期値の整形
-    document.querySelectorAll('input[data-format="int"]').forEach(formatIntInput);
-    document.querySelectorAll('input[data-format="decimal"]').forEach(formatDecimalInput);
 
     render();
   </script>
