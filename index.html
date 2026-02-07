@@ -1,12 +1,8 @@
 <!doctype html>
-<!-- internal version: r4
-  changes:
-  - reset button added to top (and kept bottom)
-  - removed sticky header (title no longer fixed on scroll)
-  - removed specific help sentences (cmr / annualSales)
-  - removed monthlySales input; monthly sales is derived from annualSales/12 wherever needed
-  - bottom action area simplified to buttons only
-  - added credit + version footer
+<!-- internal version: r5
+  changes from r4:
+  - bottom action buttons / card layout aligned to tool-portal style (action-row)
+  - footer credit/version aligned to tool-portal style (mk-mini: year, CC, terms, rev, last-updated)
 -->
 <html lang="ja">
 <head>
@@ -15,203 +11,158 @@
   <title>打ち手検討ツール｜支出額を売上換算 → 打ち手を検討</title>
   <meta name="description" content="支出額を限界利益率で売上換算し、単価・数量・自動化のどこで回収するかを同じ画面で整理します。" />
 
-  <!-- favicon -->
-  <link rel="icon" type="image/png" sizes="192x192" href="favicon192192.png">
-  <link rel="apple-touch-icon" sizes="192x192" href="favicon192192.png">
+  <!-- Favicon -->
+  <link rel="icon" href="favicon.ico" sizes="any" />
+  <link rel="shortcut icon" href="favicon.ico" />
+  <link rel="icon" type="image/png" sizes="192x192" href="favicon192192.png" />
+  <link rel="apple-touch-icon" href="favicon192192.png" />
+  <meta name="theme-color" content="#578899" />
 
   <style>
     :root{
-      --brand:#578899;
-      --bg:#f6f8fb;
-      --card:#ffffff;
-      --text:#17323a;
-      --muted:#56707a;
-      --line:rgba(23,50,58,.12);
-      --soft:rgba(87,136,153,.10);
-      --shadow:0 10px 28px rgba(20,40,50,.10);
-      --r:16px;
+      --bg:#f4f9fb; --card:#ffffff; --ink:#2b3a3d; --muted:#5a6a6d;
+      --accent:#578899; --accent-2:#7aa2b0; --shadow:0 10px 30px rgba(35,80,90,.12); --radius:16px;
+      --border:#d9eaed; --blue:#1a6ea0;
     }
-    *{box-sizing:border-box}
+    html,body{height:100%;}
     body{
       margin:0;
+      font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic UI","YuGothic","Noto Sans JP","Segoe UI",Roboto,Arial,sans-serif;
       background:var(--bg);
-      color:var(--text);
-      font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      color:var(--ink);
+      -webkit-font-smoothing:antialiased;
       line-height:1.55;
     }
     a{color:inherit}
 
+    /* ===== wrap (tool-portal style) ===== */
+    .wrap{
+      padding:max(12px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right))
+              calc(16px + env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+      max-width:980px;
+      margin:0 auto;
+    }
+
     /* header (NOT sticky) */
-    .top{
-      position:static;
-      background:var(--bg);
-      border-bottom:1px solid var(--line);
+    header{padding:8px 6px 2px;}
+    .brand{display:flex; align-items:center; gap:10px;}
+    .logo{height:48px; width:auto; object-fit:contain;}
+    .logo-link{display:inline-flex; align-items:center; line-height:0;}
+    .title{
+      flex:1; min-width:0; font-weight:900; letter-spacing:.02em; line-height:1.2; margin:0;
+      white-space:nowrap; font-size:clamp(18px, 4.8vw, 26px);
     }
-    .topin{
-      max-width:980px; margin:0 auto;
-      padding:10px 14px;
-      display:flex; align-items:center; justify-content:space-between; gap:10px;
-    }
-    .brand{
-      display:flex; align-items:center; gap:12px; min-width:0;
-    }
-    .logo{
-      width:44px; height:44px;
-      border-radius:14px;
-      border:1px solid rgba(87,136,153,.35);
-      background:#fff;
-      object-fit:cover;
-      display:block;
-      flex:0 0 auto;
-    }
-    .btxt{min-width:0}
-    .bttl{
-      font-weight:900;
-      font-size:20px;
-      line-height:1.15;
-      letter-spacing:.02em;
-    }
-    .bsub{
-      font-size:12px;
-      color:var(--muted);
-      white-space:nowrap; overflow:hidden; text-overflow:ellipsis
-    }
+    .subtitle{color:var(--muted); font-size:12px; margin:6px 0 0 0;}
 
-    .btns{display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end}
-    .btn{
-      appearance:none;
-      border:1px solid var(--line);
-      background:#fff;
-      color:var(--text);
-      border-radius:12px;
-      padding:9px 12px;
-      font-weight:800;
-      cursor:pointer;
-      box-shadow:0 2px 0 rgba(0,0,0,.02);
-      transition:.12s transform,.12s box-shadow,.12s border-color;
-      user-select:none;
-    }
-    .btn:hover{transform:translateY(-1px); box-shadow:0 10px 18px rgba(20,40,50,.08); border-color:rgba(87,136,153,.35)}
-    .btn.primary{background:var(--soft); border-color:rgba(87,136,153,.35)}
-    .btn.ghost{background:transparent}
-
-    .wrap{max-width:980px; margin:0 auto; padding:16px 14px 34px}
-    .grid{display:grid; gap:12px}
+    /* cards */
     .card{
       background:var(--card);
-      border:1px solid var(--line);
-      border-radius:var(--r);
-      padding:14px;
+      border-radius:var(--radius);
       box-shadow:var(--shadow);
+      padding:18px 16px;
+      margin:12px 0 18px;
+      break-inside:avoid;
+      border:1px solid #e7f1f3;
     }
-    h2{margin:0 0 6px; font-size:18px}
-    .p{margin:6px 0 0; color:var(--muted)}
+    .card h2{margin:0 0 10px; font-size:18px; font-weight:900; color:#324245; letter-spacing:.01em;}
+    .p{margin:6px 0 0; color:var(--muted); font-size:13px;}
 
-    .talk{
-      margin:10px 0 0;
-      border:1px solid rgba(87,136,153,.28);
-      background:rgba(87,136,153,.06);
-      border-radius:14px;
-      padding:10px 12px;
-      color:var(--muted);
-      font-size:12px;
-    }
-
+    /* chips */
     .steps{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px}
     .chip{
       display:inline-flex; align-items:center; gap:8px;
       padding:7px 10px;
       border-radius:999px;
-      border:1px solid rgba(87,136,153,.22);
-      background:rgba(87,136,153,.06);
+      border:1px solid #e6f3f7;
+      background:#f7fbfd;
       font-size:12px;
-      color:var(--muted);
-      font-weight:800;
+      color:#7aa2b0;
+      font-weight:900;
     }
-    .chip b{color:var(--text)}
+    .chip b{color:var(--ink)}
 
-    .row{display:grid; grid-template-columns:1fr 1fr; gap:10px}
-    @media (max-width:760px){ .row{grid-template-columns:1fr} }
+    /* inputs */
+    .row-two{display:grid; grid-template-columns:1fr 1fr; gap:12px; align-items:end;}
+    @media (max-width:680px){ .row-two{grid-template-columns:1fr;} }
 
-    label{display:block; font-size:12px; color:var(--muted); margin:0 0 6px; font-weight:800}
+    .label{font-size:13px; color:var(--muted); margin:0 0 6px 2px; font-weight:900;}
     input, textarea{
       width:100%;
       padding:12px 12px;
       border-radius:12px;
-      border:1px solid rgba(23,50,58,.14);
-      background:#fff;
-      color:var(--text);
+      border:1px solid var(--border);
+      background:#f8fcfd;
+      color:var(--ink);
       font-size:16px;
       outline:none;
+      font-weight:800;
+      letter-spacing:.02em;
+      font-feature-settings:"tnum";
+      font-variant-numeric:tabular-nums;
     }
-
-    /* placeholder (lighter) */
-    input::placeholder, textarea::placeholder{ color: rgba(86,112,122,.45); }
-    input::-webkit-input-placeholder, textarea::-webkit-input-placeholder{ color: rgba(86,112,122,.45); }
-    input::-moz-placeholder, textarea::-moz-placeholder{ color: rgba(86,112,122,.45); opacity:1; }
-    input:-ms-input-placeholder, textarea:-ms-input-placeholder{ color: rgba(86,112,122,.45); }
-
-    textarea{min-height:110px; resize:vertical}
     input:focus, textarea:focus{
-      border-color:rgba(87,136,153,.55);
-      box-shadow:0 0 0 4px rgba(87,136,153,.16);
+      border-color:#9ecbd9;
+      box-shadow:0 0 0 4px rgba(122,162,176,.18);
+      background:#fff;
     }
+
+    /* placeholder lighter */
+    input::placeholder, textarea::placeholder{color:#8fa2a6; opacity:.30; font-weight:700;}
+    textarea{min-height:110px; resize:vertical; font-weight:700; letter-spacing:0; line-height:1.55}
+
     .help{font-size:12px; color:var(--muted); margin-top:6px}
 
-    .kpi{display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-top:10px}
-    @media (max-width:760px){ .kpi{grid-template-columns:1fr} }
-    .k{
-      border:1px solid rgba(23,50,58,.10);
-      border-radius:14px;
-      padding:12px;
-      background:rgba(87,136,153,.04);
-    }
-    .k .t{font-size:12px; color:var(--muted); font-weight:800}
-    .k .v{font-size:18px; font-weight:900; margin-top:6px}
-
-    .note{
-      border:1px solid rgba(87,136,153,.28);
-      background:rgba(87,136,153,.06);
-      border-radius:14px;
-      padding:12px;
-      margin-top:10px;
-      color:var(--muted);
-      font-size:12px;
-    }
-
+    /* average chips */
     .avgWrap{margin-top:10px}
     .avgTitle{font-size:12px; color:var(--muted); font-weight:900; margin:0 0 8px}
     .avgGrid{display:flex; flex-wrap:wrap; gap:8px}
     .avgBtn{
       appearance:none;
-      border:1px solid rgba(87,136,153,.22);
-      background:rgba(87,136,153,.06);
-      color:var(--text);
+      border:1px solid #e6f3f7;
+      background:#f7fbfd;
+      color:#7aa2b0;
       border-radius:999px;
-      padding:8px 10px;
+      padding:6px 10px;
       cursor:pointer;
       font-weight:900;
-      font-size:13px;
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      transition:.12s transform,.12s box-shadow,.12s border-color;
+      font-size:12px;
       user-select:none;
+      transition:background-color .15s, color .15s, border-color .15s, transform .12s;
       white-space:nowrap;
     }
-    .avgBtn:hover{transform:translateY(-1px); box-shadow:0 10px 18px rgba(20,40,50,.08); border-color:rgba(87,136,153,.35)}
-    .avgBtn .lab{color:var(--muted); font-weight:800; font-size:12px}
-    .avgBtn.active{border-color:rgba(87,136,153,.65); background:rgba(87,136,153,.12)}
+    .avgBtn:hover{background:#eef7fa; transform:translateY(-1px);}
+    .avgBtn.active{background:#cfe7ef; border-color:#9ecbd9; color:#0f4f63;}
+    .avgBtn .lab{color:inherit; opacity:.85; font-weight:900; margin-right:6px}
 
-    .chooser{
-      margin-top:12px;
-      display:grid;
-      grid-template-columns:1fr 1fr 1fr;
-      gap:12px;
+    /* KPIs */
+    .kpi3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-top:12px}
+    @media (max-width:760px){ .kpi3{grid-template-columns:1fr} }
+    .k{
+      background:#f7fbfd;
+      border:1px solid #e6f1f3;
+      border-radius:14px;
+      padding:12px;
     }
+    .k .t{font-size:12px; color:var(--muted); font-weight:900}
+    .k .v{font-size:clamp(18px, 4.8vw, 26px); font-weight:900; color:#2a6b7b; margin-top:6px}
+
+    .talk{
+      margin:10px 0 0;
+      border:1px solid #d9eaed;
+      background:#eef7f8;
+      border-radius:14px;
+      padding:10px 12px;
+      color:#2a6b7b;
+      font-size:12px;
+      font-weight:800;
+    }
+    .talk b{color:#0f4f63}
+
+    /* chooser cards */
+    .chooser{margin-top:12px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;}
     @media (max-width:900px){ .chooser{grid-template-columns:1fr} }
     .bigCard{
-      border:1px solid rgba(23,50,58,.12);
+      border:1px solid #e6f1f3;
       border-radius:16px;
       padding:14px;
       background:#fff;
@@ -220,319 +171,341 @@
       gap:10px;
       min-height:140px;
     }
-    .bigCard h3{margin:0; font-size:16px}
-    .bigCard p{margin:0; color:var(--muted); font-size:12px}
+    .bigCard h3{margin:0; font-size:16px; font-weight:900; color:#324245}
+    .bigCard p{margin:0; color:var(--muted); font-size:12px; font-weight:700}
     .bigCard .grow{flex:1}
 
+    /* buttons (general) */
+    .btn{
+      appearance:none;
+      border:0;
+      border-radius:12px;
+      padding:10px 12px;
+      font-size:15px;
+      font-weight:900;
+      cursor:pointer;
+    }
+    .btn-primary{
+      width:100%;
+      background:linear-gradient(180deg,var(--accent-2),var(--accent));
+      color:#fff;
+    }
+    .btn:active{transform:translateY(1px);}
+
+    /* detail */
     .detail{
       margin-top:12px;
-      border:1px solid rgba(23,50,58,.12);
+      border:1px solid #e6f1f3;
       border-radius:16px;
       padding:14px;
       background:#fff;
     }
-    .detailHead{
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:10px;
-      flex-wrap:wrap;
+    .detailHead{display:flex; align-items:flex-start; justify-content:space-between; gap:10px; flex-wrap:wrap;}
+    .detailHead h3{margin:0; font-size:16px; font-weight:900}
+    .detailHead .mini{margin:4px 0 0; color:var(--muted); font-size:12px; font-weight:700}
+    .btns{display:flex; gap:10px; flex-wrap:wrap;}
+    .btn-lite{
+      background:#eef7f9; color:#3f7c8e; border:1px solid #cfe3ea;
+      box-shadow:none;
     }
-    .detailHead h3{margin:0; font-size:16px}
-    .detailHead .mini{margin:4px 0 0; color:var(--muted); font-size:12px}
-
-    .kpi2{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px}
+    .btn-lite:hover{background:#e6f2f6;}
+    .kpi2{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px}
     @media (max-width:760px){ .kpi2{grid-template-columns:1fr} }
     .k2{
-      border:1px solid rgba(23,50,58,.10);
+      background:#f7fbfd;
+      border:1px solid #e6f1f3;
       border-radius:14px;
       padding:12px;
-      background:rgba(87,136,153,.04);
     }
-    .k2 .t{font-size:12px; color:var(--muted); font-weight:800}
-    .k2 .v{font-size:16px; font-weight:900; margin-top:6px}
-    .mutedLine{margin-top:8px; color:var(--muted); font-size:12px}
+    .k2 .t{font-size:12px; color:var(--muted); font-weight:900}
+    .k2 .v{font-size:16px; font-weight:900; color:#2a6b7b; margin-top:6px}
 
-    /* bottom action buttons only */
-    .actionOnly{
-      display:flex; gap:8px; flex-wrap:wrap;
-      justify-content:flex-end;
+    /* top reset button */
+    .top-actions{margin-left:auto; display:flex; gap:8px; flex-wrap:nowrap;}
+    .top-actions .btn-lite{padding:8px 10px; font-size:13px; border-radius:10px; white-space:nowrap;}
+
+    /* note */
+    .note{
+      border:1px solid #d9eaed;
+      background:#eef7f8;
+      border-radius:14px;
+      padding:12px;
+      margin-top:12px;
+      color:var(--muted);
+      font-size:12px;
+      font-weight:700;
     }
-    @media (max-width:760px){
-      .actionOnly{justify-content:stretch}
-      .actionOnly .btn{flex:1}
+
+    /* ===== bottom action card (tool-portal style) ===== */
+    .card-actions{padding-top:10px;}
+    .action-row{display:flex; gap:10px; margin:6px 0; flex-wrap:nowrap;}
+    .action-row .btn{
+      background:#eef7f9; color:#3f7c8e; border:1px solid #cfe3ea; box-shadow:none;
+      padding:12px 14px; font-size:15px; border-radius:12px; flex:1 1 33%; white-space:nowrap;
+    }
+    .action-row .btn:hover{background:#e6f2f6;}
+
+    /* ===== footer mk-mini (tool-portal style) ===== */
+    footer.mk-mini{
+      margin:18px 4px 10px;
+      text-align:center;
+      color:#667;
+      font-size:11px;
+      line-height:1.6;
+      white-space:normal;
+      overflow-wrap:anywhere;
+      text-overflow:clip;
+    }
+    footer.mk-mini a{
+      color:inherit;
+      text-decoration:underline;
+      text-underline-offset:2px;
     }
 
     /* modal */
     .modalBack{
       position:fixed; inset:0; z-index:100;
-      background:rgba(10,20,25,.35);
+      background:rgba(0,0,0,.25);
       display:none; align-items:center; justify-content:center;
       padding:14px;
     }
     .modal{
-      width:min(1040px, 96vw);
-      height:min(720px, 86vh);
+      width:fit-content;
+      max-width:min(94vw, 980px);
+      height:min(86vh, 720px);
       background:#fff;
-      border-radius:18px;
-      border:1px solid rgba(23,50,58,.14);
+      border-radius:14px;
+      overflow:hidden;
+      border:1px solid #d9eaed;
       box-shadow:0 18px 50px rgba(0,0,0,.18);
-      display:flex; flex-direction:column; overflow:hidden;
+      display:flex; flex-direction:column;
     }
     .modalTop{
+      display:flex; align-items:center; justify-content:space-between; gap:8px;
       padding:10px 12px;
-      border-bottom:1px solid rgba(23,50,58,.10);
-      display:flex; align-items:center; justify-content:space-between; gap:10px;
-      background:rgba(246,248,251,.92);
+      border-bottom:1px solid #eef2f3;
+      background:#fff;
     }
-    .modalTitle{font-weight:900; font-size:13px; color:var(--text); min-width:0}
-    .modalTitle span{color:var(--muted); font-weight:800; font-size:12px}
+    .modalTitle{font-weight:900; font-size:13px; color:#324245; min-width:0}
     .modalFrame{flex:1; background:#fff;}
     iframe{width:100%; height:100%; border:0; background:#fff;}
     .modalHint{
       padding:10px 12px;
-      border-top:1px solid rgba(23,50,58,.10);
+      border-top:1px solid #eef2f3;
       color:var(--muted);
       font-size:12px;
       background:#fff;
+      font-weight:700;
     }
 
-    /* footer credit */
-    .footer{
-      max-width:980px;
-      margin:14px auto 0;
-      padding:10px 14px 2px;
-      color:rgba(86,112,122,.75);
-      font-size:12px;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      flex-wrap:wrap;
-    }
-    .footer .ver{
-      font-weight:900;
-      color:rgba(86,112,122,.85);
-    }
-
+    /* print */
+    @page { size:auto; margin:12mm; }
     @media print{
-      body{background:#fff}
-      .btns, .modalBack{display:none !important}
-      .wrap{padding:0}
-      .card{box-shadow:none; border:1px solid #ddd}
-      .k, .k2{background:#fff}
-      a{color:#000; text-decoration:none}
-      textarea{min-height:140px}
-      .footer{border-top:0; padding:0; margin-top:10px}
+      body{background:#fff;}
+      .card{box-shadow:none;}
+      .modalBack{display:none !important;}
     }
   </style>
 </head>
 
 <body>
-  <div class="top">
-    <div class="topin">
-      <div class="brand">
-        <img class="logo" src="ロゴ.jpg" alt="ロゴ" />
-        <div class="btxt">
-          <div class="bttl">打ち手検討ツール</div>
-          <div class="bsub">支出額を売上換算 → 打ち手を検討</div>
-        </div>
-      </div>
-
-      <!-- Top reset button -->
-      <div class="btns">
-        <button class="btn primary" id="btnResetTop">リセット</button>
-      </div>
-    </div>
-  </div>
-
   <div class="wrap">
-    <div class="grid">
+    <header>
+      <div class="brand">
+        <a class="logo-link" href="https://takatrp.github.io/tool-portal/" title="ツールポータルへ">
+          <img src="ロゴ.jpg" alt="松本会計事務所ロゴ" class="logo" />
+        </a>
+        <h1 class="title">打ち手検討ツール</h1>
 
-      <!-- STEP 1 -->
-      <section class="card">
-        <h2>1. 売上換算</h2>
-        <div class="p">今回検討する支出額が「売上に直すとどれくらいか」を、限界利益率で整理します（概算）。</div>
+        <!-- top reset only -->
+        <div class="top-actions">
+          <button class="btn btn-lite" id="btnResetTop" type="button">リセット</button>
+        </div>
+      </div>
+      <div class="subtitle">支出額を売上換算 → 打ち手（単価・数量・自動化）を同じ画面で整理します。</div>
+    </header>
 
-        <div class="steps">
-          <div class="chip"><b>入力</b>：今回検討する支出額</div>
-          <div class="chip"><b>入力</b>：限界利益率</div>
-          <div class="chip"><b>任意</b>：年商</div>
+    <!-- STEP 1 -->
+    <section class="card" aria-label="売上換算">
+      <h2>1. 売上換算</h2>
+      <div class="p">今回検討する支出額が「売上に直すとどれくらいか」を、限界利益率で整理します（概算）。</div>
+
+      <div class="steps">
+        <div class="chip"><b>入力</b>：今回検討する支出額</div>
+        <div class="chip"><b>入力</b>：限界利益率</div>
+        <div class="chip"><b>任意</b>：年商</div>
+      </div>
+
+      <div class="row-two" style="margin-top:12px;">
+        <div>
+          <div class="label">今回検討する支出額（円 / 月）</div>
+          <input id="spendMonthly" inputmode="numeric" pattern="[0-9]*" placeholder="例：20,000" data-format="int" autocomplete="off" />
+          <div class="help">例：追加投資、外注費、固定費の増加など。</div>
         </div>
 
-        <div class="row" style="margin-top:12px;">
+        <div>
+          <div class="label">限界利益率（%）</div>
+          <input id="cmr" inputmode="decimal" pattern="[0-9.]*" placeholder="例：30" data-format="decimal" autocomplete="off" />
+
+          <div class="avgWrap">
+            <div class="avgTitle">参考：産業ごとの全国平均</div>
+            <div class="avgGrid" id="avgGrid"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row-two" style="margin-top:10px;">
+        <div>
+          <div class="label">年商（任意 / 円）</div>
+          <input id="annualSales" inputmode="numeric" pattern="[0-9]*" placeholder="例：120,000,000" data-format="int" autocomplete="off" />
+        </div>
+        <div>
+          <div class="label">月商（自動 / 年商÷12）</div>
+          <input id="monthlySalesAuto" readonly placeholder="—" />
+        </div>
+      </div>
+
+      <div class="kpi3">
+        <div class="k">
+          <div class="t">売上換算額（円 / 月）</div>
+          <div class="v" id="salesEqM">—</div>
+        </div>
+        <div class="k">
+          <div class="t">売上換算額（円 / 年）</div>
+          <div class="v" id="salesEqY">—</div>
+        </div>
+        <div class="k">
+          <div class="t">年商に占める割合（%）</div>
+          <div class="v" id="shareY">—</div>
+        </div>
+      </div>
+
+      <div class="note">入力値はこの端末内で計算され、送信されません（このページ単体で完結します）。</div>
+    </section>
+
+    <!-- STEP 2 -->
+    <section class="card" aria-label="打ち手を検討">
+      <h2>2. 打ち手を検討</h2>
+      <div class="p">売上換算額を「どうやって作るか」を3つの方向から検討します。</div>
+
+      <div class="talk" id="talkMemo">
+        「売上換算（支出額 ÷ 限界利益率）で“必要な売上”を揃えました。次に、これを <b>単価</b>・<b>数量</b>・<b>自動化</b> のどの方向で回収するかを一緒に決めましょう。」
+      </div>
+
+      <div id="routeChooser" class="chooser" aria-label="打ち手の選択">
+        <div class="bigCard">
+          <div class="grow">
+            <h3>単価を上げる</h3>
+            <p>価格・値付け・客層・提供価値の見直しで、同じ労力で利益を増やす方向です。</p>
+          </div>
+          <button class="btn btn-primary" data-pick="price" type="button">この方向で深掘り</button>
+        </div>
+
+        <div class="bigCard">
+          <div class="grow">
+            <h3>数量を上げる</h3>
+            <p>「取引単価×取引数」の整理で、必要な追加件数と入口数を数字で見える化します（業種共通）。</p>
+          </div>
+          <button class="btn btn-primary" data-pick="volume" type="button">この方向で深掘り</button>
+        </div>
+
+        <div class="bigCard">
+          <div class="grow">
+            <h3>業務プロセスを自動化（時間創出）</h3>
+            <p>時間を作り、その時間で付加価値活動へ移す方向です（回収に必要な削減時間の目安が出ます）。</p>
+          </div>
+          <button class="btn btn-primary" data-pick="auto" type="button">この方向で深掘り</button>
+        </div>
+      </div>
+
+      <div id="routeDetail" class="detail" style="display:none;">
+        <div class="detailHead">
           <div>
-            <label for="spendMonthly">今回検討する支出額（円 / 月）</label>
-            <input id="spendMonthly" inputmode="numeric" pattern="[0-9]*" placeholder="例：20,000" data-format="int" />
-            <div class="help">例：追加投資、外注費、固定費の増加など。</div>
+            <h3 id="detailTitle">—</h3>
+            <div class="mini" id="detailSub">—</div>
           </div>
-
-          <div>
-            <label for="cmr">限界利益率（%）</label>
-            <input id="cmr" inputmode="decimal" pattern="[0-9.]*" placeholder="例：30" data-format="decimal" />
-
-            <div class="avgWrap">
-              <div class="avgTitle">参考：産業ごとの全国平均</div>
-              <div class="avgGrid" id="avgGrid"></div>
-            </div>
+          <div class="btns">
+            <button class="btn btn-lite" id="btnBack" type="button">3つの打ち手に戻る</button>
           </div>
         </div>
 
-        <div class="row" style="margin-top:10px;">
-          <div>
-            <label for="annualSales">年商（任意 / 円）</label>
-            <input id="annualSales" inputmode="numeric" pattern="[0-9]*" placeholder="例：120,000,000" data-format="int" />
-          </div>
-          <div>
-            <label>月商（自動 / 年商÷12）</label>
-            <input id="monthlySalesAuto" readonly placeholder="—" />
-            <div class="help">年商を入力すると自動計算されます。</div>
-          </div>
+        <div class="row-two" style="margin-top:10px;">
+          <div id="detailInputA"></div>
+          <div id="detailInputB"></div>
         </div>
 
-        <div class="kpi">
-          <div class="k">
-            <div class="t">売上換算額（円 / 月）</div>
-            <div class="v" id="salesEqM">—</div>
-          </div>
-          <div class="k">
-            <div class="t">売上換算額（円 / 年）</div>
-            <div class="v" id="salesEqY">—</div>
-          </div>
-          <div class="k">
-            <div class="t">年商に占める割合（%）</div>
-            <div class="v" id="shareY">—</div>
-          </div>
+        <div class="kpi2" id="detailKpi"></div>
+
+        <div class="btns" style="margin-top:10px; justify-content:flex-start;">
+          <button class="btn btn-lite" id="btnOpenTool" type="button">関連ツールで確認（同一画面）</button>
+          <button class="btn btn-lite" id="btnOpenToolNewTab" type="button">別タブで開く</button>
         </div>
 
-        <div class="note">
-          入力値はこの端末内で計算され、送信されません（このページ単体で完結します）。
+        <div class="help" id="detailHint" style="margin-top:8px;"></div>
+      </div>
+    </section>
+
+    <!-- STEP 3 -->
+    <section class="card" aria-label="次の一手">
+      <h2>3. 次の一手</h2>
+      <div class="p">「何を」「いつから」「どの指標で確認するか」を決めると、判断がブレにくくなります。印刷してお渡しできる形で整理します。</div>
+
+      <div class="row-two" style="margin-top:12px;">
+        <div>
+          <div class="label">今回の打ち手（選択結果）</div>
+          <input id="selectedRouteLabel" readonly value="（未選択）" />
+          <div class="help">※2で選ぶと自動反映されます。</div>
         </div>
-      </section>
-
-      <!-- STEP 2 -->
-      <section class="card">
-        <h2>2. 打ち手を検討</h2>
-        <div class="p">売上換算額を「どうやって作るか」を3つの方向から検討します。</div>
-
-        <div class="talk" id="talkMemo">
-          「売上換算（支出額 ÷ 限界利益率）で“必要な売上”を揃えました。次に、これを <b>単価</b>・<b>数量</b>・<b>自動化</b> のどの方向で回収するかを一緒に決めましょう。」
+        <div>
+          <div class="label">実行開始予定日（任意）</div>
+          <input id="startDate" type="date" />
         </div>
+      </div>
 
-        <div id="routeChooser" class="chooser" aria-label="打ち手の選択">
-          <div class="bigCard">
-            <div class="grow">
-              <h3>単価を上げる</h3>
-              <p>価格・値付け・客層・提供価値の見直しで、同じ労力で利益を増やす方向です。</p>
-            </div>
-            <button class="btn primary" data-pick="price">この方向で深掘り</button>
-          </div>
-
-          <div class="bigCard">
-            <div class="grow">
-              <h3>数量を上げる</h3>
-              <p>「取引単価×取引数」の整理で、必要な追加件数と入口数を数字で見える化します（業種共通）。</p>
-            </div>
-            <button class="btn primary" data-pick="volume">この方向で深掘り</button>
-          </div>
-
-          <div class="bigCard">
-            <div class="grow">
-              <h3>業務プロセスを自動化（時間創出）</h3>
-              <p>時間を作り、その時間で付加価値活動へ移す方向です（回収に必要な削減時間の目安が出ます）。</p>
-            </div>
-            <button class="btn primary" data-pick="auto">この方向で深掘り</button>
-          </div>
+      <div class="row-two" style="margin-top:10px;">
+        <div>
+          <div class="label">対象（商品 / 客層 / 業務など）</div>
+          <input id="targetScope" placeholder="例：A商品、既存顧客の更新単価、請求～入金の運用 など" autocomplete="off" />
         </div>
-
-        <div id="routeDetail" class="detail" style="display:none;">
-          <div class="detailHead">
-            <div>
-              <h3 id="detailTitle">—</h3>
-              <div class="mini" id="detailSub">—</div>
-            </div>
-            <div class="btns">
-              <button class="btn" id="btnBack">3つの打ち手に戻る</button>
-            </div>
-          </div>
-
-          <div class="row" style="margin-top:10px;">
-            <div id="detailInputA"></div>
-            <div id="detailInputB"></div>
-          </div>
-
-          <div class="kpi2" id="detailKpi"></div>
-
-          <div class="btns" style="margin-top:10px; justify-content:flex-start;">
-            <button class="btn primary" id="btnOpenTool">関連ツールで確認（同一画面）</button>
-            <button class="btn" id="btnOpenToolNewTab">別タブで開く</button>
-          </div>
-
-          <div class="mutedLine" id="detailHint"></div>
+        <div>
+          <div class="label">確認する指標（月次で見るもの）</div>
+          <input id="checkKpi" placeholder="例：平均単価、粗利率、件数、月次確定日 など" autocomplete="off" />
         </div>
-      </section>
+      </div>
 
-      <!-- STEP 3 -->
-      <section class="card">
-        <h2>3. 次の一手</h2>
-        <div class="p">「何を」「いつから」「どの指標で確認するか」を決めると、判断がブレにくくなります。印刷してお渡しできる形で整理します。</div>
+      <div style="margin-top:10px;">
+        <div class="label">自由記入（決定事項 / 宿題 / メモ）</div>
+        <textarea id="freeMemo" placeholder="例：対象、実施手順、担当、期限、想定リスクと対策、次回までの宿題など"></textarea>
+      </div>
+    </section>
 
-        <div class="row" style="margin-top:12px;">
-          <div>
-            <label>今回の打ち手（選択結果）</label>
-            <input id="selectedRouteLabel" readonly value="（未選択）" />
-            <div class="help">※2で選ぶと自動反映されます。</div>
-          </div>
-          <div>
-            <label>実行開始予定日（任意）</label>
-            <input id="startDate" type="date" />
-            <div class="help">実行タイミングを決めると、行動に落ちやすくなります。</div>
-          </div>
-        </div>
+    <!-- bottom action card (same layout as sample) -->
+    <section class="card card-actions" aria-label="操作">
+      <div class="action-row">
+        <button id="copy" class="btn" type="button">要点をコピー</button>
+        <button id="reset" class="btn" type="button">リセット</button>
+        <button id="print" class="btn" type="button">印刷 / PDF保存</button>
+      </div>
+    </section>
 
-        <div class="row" style="margin-top:10px;">
-          <div>
-            <label>対象（商品 / 客層 / 業務など）</label>
-            <input id="targetScope" placeholder="例：A商品、既存顧客の更新単価、請求～入金の運用 など" />
-          </div>
-          <div>
-            <label>確認する指標（月次で見るもの）</label>
-            <input id="checkKpi" placeholder="例：平均単価、粗利率、件数、月次確定日 など" />
-          </div>
-        </div>
-
-        <div style="margin-top:10px;">
-          <label>自由記入（決定事項 / 宿題 / メモ）</label>
-          <textarea id="freeMemo" placeholder="例：対象、実施手順、担当、期限、想定リスクと対策、次回までの宿題など"></textarea>
-        </div>
-      </section>
-
-      <!-- Bottom: buttons only -->
-      <section class="card">
-        <div class="actionOnly">
-          <button class="btn ghost" id="btnCopy">要点をコピー</button>
-          <button class="btn" id="btnPrint">印刷 / PDF</button>
-          <button class="btn primary" id="btnReset">リセット</button>
-        </div>
-      </section>
-
-    </div>
-
-    <!-- credit + version -->
-    <div class="footer">
-      <div>© 税理士法人松本会計事務所</div>
-      <div class="ver">ver r4</div>
-    </div>
+    <!-- footer (same style as sample) -->
+    <footer class="mk-mini">
+      © <span id="cpy-year">2026</span>
+      <a href="https://www.matsumoto-kaikei.or.jp/" target="_blank" rel="noopener license">税理士法人松本会計事務所</a>
+      ｜ <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="license noopener">CC BY-NC-SA 4.0</a>
+      ｜ <a href="/tool-portal/terms.html" target="_blank" rel="noopener">利用条件</a>
+      ｜ <span id="build-rev">r5</span>（<span id="last-updated-date"></span>）
+    </footer>
   </div>
 
   <!-- modal -->
   <div class="modalBack" id="modalBack" role="dialog" aria-modal="true" aria-label="ツール表示">
     <div class="modal">
       <div class="modalTop">
-        <div class="modalTitle" id="modalTitle">ツールを表示 <span>（同一画面）</span></div>
+        <div class="modalTitle" id="modalTitle">ツールを表示（同一画面）</div>
         <div class="btns">
-          <button class="btn" id="btnOpenNewTab2">別タブで開く</button>
-          <button class="btn primary" id="btnClose">閉じる</button>
+          <button class="btn btn-lite" id="btnOpenNewTab2" type="button">別タブで開く</button>
+          <button class="btn btn-lite" id="btnClose" type="button">閉じる</button>
         </div>
       </div>
       <div class="modalFrame">
@@ -635,8 +608,20 @@
       }
     };
 
-    const KEY = "mk_action_tool_v3";
+    const KEY = "mk_action_tool_v4";
     const $ = (id)=>document.getElementById(id);
+
+    // year & last updated (tool-portal style)
+    (function(){
+      const yEl = $("cpy-year"), dEl = $("last-updated-date");
+      const now = new Date();
+      if (yEl) yEl.textContent = String(now.getFullYear());
+      if (dEl) {
+        const lm = new Date(document.lastModified);
+        const pad = n => String(n).padStart(2,'0');
+        dEl.textContent = `${lm.getFullYear()}-${pad(lm.getMonth()+1)}-${pad(lm.getDate())}`;
+      }
+    })();
 
     function normalizeDecimalText(s){
       return String(s ?? "")
@@ -765,7 +750,7 @@
         b.type = "button";
         b.className = "avgBtn";
         b.dataset.avgKey = item.key;
-        b.innerHTML = `<span class="lab">${item.label}</span><span>${item.value}%</span>`;
+        b.innerHTML = `<span class="lab">${item.label}</span>${item.value}%`;
         b.addEventListener("click", ()=>{
           $("cmr").value = String(item.value);
           formatDecimalInput($("cmr"));
@@ -882,7 +867,7 @@
         b.type="button";
         b.className="avgBtn";
         b.dataset.vkey = item.key;
-        b.innerHTML = `<span class="lab">用語</span><span>${item.label}</span>`;
+        b.textContent = item.label;
         b.classList.toggle("active", item.key===volumeLabelKey);
         b.addEventListener("click", ()=>{
           const keep = {
@@ -926,14 +911,8 @@
         $("detailTitle").textContent = "単価を上げる（深掘り）";
         $("detailSub").textContent   = "年商から月商（年商÷12）を自動計算し、必要な上乗せ率の目安を確認します。";
 
-        inputA.innerHTML = `
-          <label>前提</label>
-          <div class="help">※年商を入力している場合、月商は自動計算されます（年商÷12）。</div>
-        `;
-        inputB.innerHTML = `
-          <label>ポイント</label>
-          <div class="help">値付け・提供価値・客層の見直しで、同じ稼働でも利益を作りやすい方向です。</div>
-        `;
+        inputA.innerHTML = `<div class="help">※年商を入力している場合、月商は自動計算されます（年商÷12）。</div>`;
+        inputB.innerHTML = `<div class="help">値付け・提供価値・客層の見直しで、同じ稼働でも利益を作りやすい方向です。</div>`;
 
         kpi.innerHTML = `
           <div class="k2">
@@ -956,43 +935,37 @@
         $("detailSub").textContent   = "業種を問わず「取引単価×取引数」の整理で、必要な追加件数と入口数を数字で揃えます。";
 
         inputA.innerHTML = `
-          <label>入力</label>
+          <div class="label">用語の言い換え（任意）</div>
+          <div id="volumeLabelChips"></div>
+          <div class="help" style="margin-top:8px;">※ここは<strong>言葉の言い換え</strong>です。計算は同じです。まずは「汎用」でOKです。</div>
 
-          <div class="avgWrap" style="margin-top:6px;">
-            <div class="avgTitle">用語の言い換え（任意）</div>
-            <div id="volumeLabelChips"></div>
-            <div class="help" style="margin-top:8px;">
-              ※ここは<strong>言葉の言い換え</strong>です。計算は同じです。まずは「汎用」でOKです。
-            </div>
-          </div>
-
-          <div style="margin-top:10px;">
-            <label for="volumeUnitPrice">${L.unitPriceLabel}</label>
-            <input id="volumeUnitPrice" inputmode="numeric" pattern="[0-9]*" placeholder="例：12,000" data-format="int" />
+          <div style="margin-top:12px;">
+            <div class="label">${L.unitPriceLabel}</div>
+            <input id="volumeUnitPrice" inputmode="numeric" pattern="[0-9]*" placeholder="例：12,000" data-format="int" autocomplete="off" />
             <div class="help">${L.unitHelp}</div>
           </div>
 
-          <div style="margin-top:10px;">
-            <label for="volumeConvRate">${L.convLabel}（% / 任意）</label>
-            <input id="volumeConvRate" inputmode="decimal" pattern="[0-9.]*" placeholder="例：30" data-format="decimal" />
+          <div style="margin-top:12px;">
+            <div class="label">${L.convLabel}（% / 任意）</div>
+            <input id="volumeConvRate" inputmode="decimal" pattern="[0-9.]*" placeholder="例：30" data-format="decimal" autocomplete="off" />
             <div class="help">${L.convHelp}</div>
           </div>
 
-          <div style="margin-top:10px;">
-            <label for="volumeDays">${L.daysLabel}（任意）</label>
-            <input id="volumeDays" inputmode="numeric" pattern="[0-9]*" placeholder="例：25" data-format="int" />
+          <div style="margin-top:12px;">
+            <div class="label">${L.daysLabel}（任意）</div>
+            <input id="volumeDays" inputmode="numeric" pattern="[0-9]*" placeholder="例：25" data-format="int" autocomplete="off" />
             <div class="help">日割りの目安（「1日あたり必要数」）を出したい場合に入力してください。</div>
           </div>
         `;
 
         inputB.innerHTML = `
-          <label>整理のしかた</label>
+          <div class="label">整理のしかた</div>
           <div class="help">
-            ① 売上換算額（必要な売上）を出す → ② ${L.unitPriceLabel} で割って<strong>必要な追加${L.txName}数</strong>を出す<br>
+            ① 売上換算額（必要な売上） → ② ${L.unitPriceLabel} で割って<strong>必要な追加${L.txName}数</strong><br>
             ③ さらに ${L.convLabel} を使って<strong>${L.entryLabel}</strong>（前段の数）を目安で出します。
           </div>
 
-          <div class="note" style="margin-top:10px;">
+          <div class="note" style="margin-top:12px;">
             数量アップは「入口を増やす」だけでなく、「成約率を上げる」でも実現できます。<br>
             どちらが現実的かを、この画面で一緒に整理するのが狙いです。
           </div>
@@ -1063,12 +1036,12 @@
         $("detailSub").textContent   = "支出額を“削減できる時間”に置き換えて、回収の目安を確認します。";
 
         inputA.innerHTML = `
-          <label for="hourCostInput">時間単価（円 / 時）</label>
-          <input id="hourCostInput" inputmode="numeric" pattern="[0-9]*" placeholder="例：3,000" data-format="int" />
+          <div class="label">時間単価（円 / 時）</div>
+          <input id="hourCostInput" inputmode="numeric" pattern="[0-9]*" placeholder="例：3,000" data-format="int" autocomplete="off" />
           <div class="help">社内の実態に合わせた目安でOKです（概算）。</div>
         `;
         inputB.innerHTML = `
-          <label>ポイント</label>
+          <div class="label">ポイント</div>
           <div class="help">“空いた時間”を、単価/数量を上げる活動へ移すことで効果が大きくなります。</div>
         `;
 
@@ -1083,7 +1056,7 @@
           </div>
         `;
 
-        $("detailHint").textContent = "『どの作業を削るか（入力/請求/回収/証憑）』『運用ルール』まで決めると、再現性が出ます。";
+        $("detailHint").textContent = "『どの作業を削るか』『運用ルール』まで決めると、再現性が出ます。";
 
         bindLiveFormatting(document);
         const hourEl = $("hourCostInput");
@@ -1217,6 +1190,7 @@
       setRoute("");
       localStorage.removeItem(KEY);
       render();
+      window.scrollTo({top:0, behavior:"smooth"});
     }
 
     buildAvgChips();
@@ -1270,9 +1244,10 @@
       if(currentUrl) window.open(currentUrl, "_blank", "noopener,noreferrer");
     });
 
-    $("btnPrint").addEventListener("click", ()=>window.print());
+    // bottom actions (IDs aligned to sample)
+    $("print").addEventListener("click", ()=>window.print());
 
-    $("btnCopy").addEventListener("click", async ()=>{
+    $("copy").addEventListener("click", async ()=>{
       const c = compute();
       const routeLabel =
         selectedRoute==="price" ? "単価を上げる" :
@@ -1325,7 +1300,7 @@ ${routeDetail ? routeDetail : ""}
 
       try{
         await navigator.clipboard.writeText(text);
-        const b = $("btnCopy"); const old = b.textContent;
+        const b = $("copy"); const old = b.textContent;
         b.textContent = "コピーしました";
         setTimeout(()=>b.textContent=old, 900);
       }catch(e){
@@ -1333,7 +1308,7 @@ ${routeDetail ? routeDetail : ""}
       }
     });
 
-    $("btnReset").addEventListener("click", doReset);
+    $("reset").addEventListener("click", doReset);
     $("btnResetTop").addEventListener("click", doReset);
 
     render();
