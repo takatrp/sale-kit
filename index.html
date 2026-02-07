@@ -46,8 +46,6 @@
     .brand{
       display:flex; align-items:center; gap:10px; min-width:0;
     }
-
-    /* 左上ロゴ（ロゴ.jpg） */
     .logo{
       width:34px; height:34px;
       border-radius:10px;
@@ -57,12 +55,12 @@
       display:block;
       flex:0 0 auto;
     }
-
     .btxt{min-width:0}
 
+    /* タイトルを大きく（ご要望） */
     .bttl{
       font-weight:900;
-      font-size:17px;
+      font-size:20px;
       line-height:1.15;
       letter-spacing:.02em;
     }
@@ -167,7 +165,7 @@
       font-size:12px;
     }
 
-    /* industry avg chips */
+    /* chips area */
     .avgWrap{margin-top:10px}
     .avgTitle{font-size:12px; color:var(--muted); font-weight:900; margin:0 0 8px}
     .avgGrid{display:flex; flex-wrap:wrap; gap:8px}
@@ -337,7 +335,6 @@
             <div class="avgWrap">
               <div class="avgTitle">参考：産業ごとの全国平均</div>
               <div class="avgGrid" id="avgGrid"></div>
-              <!-- 注記は削除（ご要望） -->
             </div>
           </div>
         </div>
@@ -396,7 +393,7 @@
           <div class="bigCard">
             <div class="grow">
               <h3>数量を上げる</h3>
-              <p>件数・受注数・稼働率を上げる方向です（平均単価がわかると目安が出ます）。</p>
+              <p>「取引単価×取引数」の整理で、必要な追加件数と入口数を数字で見える化します（業種共通）。</p>
             </div>
             <button class="btn primary" data-pick="volume">この方向で深掘り</button>
           </div>
@@ -462,7 +459,7 @@
           </div>
           <div>
             <label>確認する指標（月次で見るもの）</label>
-            <input id="checkKpi" placeholder="例：平均単価、粗利率、件数、締め日、月次確定日 など" />
+            <input id="checkKpi" placeholder="例：平均単価、粗利率、件数、月次確定日 など" />
           </div>
         </div>
 
@@ -514,7 +511,81 @@
       { key:"food",  label:"飲食業", value:64.1 },
     ];
 
-    const KEY = "mk_action_tool_v2";
+    // ====== 数量ルート：ラベル言い換え（計算は同じ） ======
+    const VOLUME_LABEL_SETS = {
+      generic: {
+        key:"generic",
+        label:"汎用（おすすめ）",
+        txName:"取引",
+        unitPriceLabel:"取引単価（1件あたり売上）",
+        unitShort:"件",
+        entryLabel:"入口数（問い合わせ/来店/見積 等）",
+        entryShort:"入口",
+        convLabel:"成約率（入口→取引）",
+        daysLabel:"稼働日数（月）",
+        unitHelp:"「1件あたりの売上」でOKです（客単価/受注単価/契約単価/出荷単価など）。",
+        entryHelp:"入口は、取引が生まれる前段の数です（問い合わせ、見積、商談、来店など）。",
+        convHelp:"入口のうち、取引につながる割合（概算でOK）。"
+      },
+      visit: {
+        key:"visit",
+        label:"来店/客数型",
+        txName:"購入",
+        unitPriceLabel:"客単価（円/人）",
+        unitShort:"人",
+        entryLabel:"来店数（入口）",
+        entryShort:"来店",
+        convLabel:"購入率（来店→購入）",
+        daysLabel:"営業日数（月）",
+        unitHelp:"「1人あたりの売上（客単価）」の目安でOKです。",
+        entryHelp:"来店数を入口として扱います（必要なら予約/問い合わせ数でもOK）。",
+        convHelp:"来店のうち購入に至る割合（概算でOK）。"
+      },
+      order: {
+        key:"order",
+        label:"受注/案件数型",
+        txName:"受注",
+        unitPriceLabel:"受注単価（円/件）",
+        unitShort:"件",
+        entryLabel:"商談/見積数（入口）",
+        entryShort:"商談",
+        convLabel:"受注率（商談→受注）",
+        daysLabel:"稼働日数（月）",
+        unitHelp:"「1件あたり売上（受注単価）」の目安でOKです。",
+        entryHelp:"商談・見積など、受注前段の数を入口として扱います。",
+        convHelp:"商談（入口）のうち、受注に至る割合（概算でOK）。"
+      },
+      contract: {
+        key:"contract",
+        label:"契約型",
+        txName:"契約",
+        unitPriceLabel:"契約単価（円/件）",
+        unitShort:"件",
+        entryLabel:"提案/相談数（入口）",
+        entryShort:"提案",
+        convLabel:"契約率（提案→契約）",
+        daysLabel:"稼働日数（月）",
+        unitHelp:"「1契約あたりの売上（単価）」の目安でOKです。",
+        entryHelp:"提案・相談など、契約前段の数を入口として扱います。",
+        convHelp:"入口のうち契約に至る割合（概算でOK）。"
+      },
+      shipment: {
+        key:"shipment",
+        label:"出荷/数量型",
+        txName:"出荷",
+        unitPriceLabel:"出荷単価（円/個）",
+        unitShort:"個",
+        entryLabel:"引合い数（入口）",
+        entryShort:"引合",
+        convLabel:"成約率（引合→出荷）",
+        daysLabel:"稼働日数（月）",
+        unitHelp:"「1個あたりの売上（単価）」の目安でOKです。",
+        entryHelp:"引合いなど、出荷に至る前段の数を入口として扱います。",
+        convHelp:"入口のうち、成約して出荷に至る割合（概算でOK）。"
+      }
+    };
+
+    const KEY = "mk_action_tool_v3";
     const $ = (id)=>document.getElementById(id);
 
     function normalizeDecimalText(s){
@@ -555,7 +626,6 @@
       const formatted = digits.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
       el.value = formatted;
 
-      // iOSでselectionStartが取れないことがあるのでガード
       try{
         let newCaret = 0;
         let count = 0;
@@ -584,15 +654,15 @@
       }catch(e){}
     }
 
-    // 重複バインド防止
-    function bindLiveFormatting(){
-      document.querySelectorAll('input[data-format="int"]').forEach(el=>{
+    // バインド（重複防止）
+    function bindLiveFormatting(root=document){
+      root.querySelectorAll('input[data-format="int"]').forEach(el=>{
         if(el.dataset.boundInt === "1") return;
         el.dataset.boundInt = "1";
         el.addEventListener("input", ()=>formatIntInput(el));
         el.addEventListener("blur",  ()=>formatIntInput(el));
       });
-      document.querySelectorAll('input[data-format="decimal"]').forEach(el=>{
+      root.querySelectorAll('input[data-format="decimal"]').forEach(el=>{
         if(el.dataset.boundDec === "1") return;
         el.dataset.boundDec = "1";
         el.addEventListener("input", ()=>formatDecimalInput(el));
@@ -613,7 +683,12 @@
     // URL引継ぎ（クエリ優先）& URLクリーン化
     function applyFromQuery(){
       const sp = new URLSearchParams(location.search);
-      const hasAny = sp.has("spendMonthly") || sp.has("cmr") || sp.has("annualSales") || sp.has("monthlySales") || sp.has("route");
+      const hasAny =
+        sp.has("spendMonthly") || sp.has("cmr") || sp.has("annualSales") || sp.has("monthlySales") ||
+        sp.has("route") ||
+        sp.has("volumeUnitPrice") || sp.has("volumeConvRate") || sp.has("volumeDays") || sp.has("volumeLabelKey") ||
+        sp.has("hourCost");
+
       if(!hasAny) return false;
 
       if(sp.get("spendMonthly")!=null) $("spendMonthly").value = String(sp.get("spendMonthly"));
@@ -625,6 +700,15 @@
       if(r==="price" || r==="volume" || r==="auto"){
         setRoute(r);
       }
+
+      // 数量ルートの引継ぎ（任意）
+      if(sp.get("volumeLabelKey")!=null) volumeLabelKey = String(sp.get("volumeLabelKey"));
+      if(sp.get("volumeUnitPrice")!=null) pendingVolumeUnitPrice = String(sp.get("volumeUnitPrice"));
+      if(sp.get("volumeConvRate")!=null) pendingVolumeConvRate = String(sp.get("volumeConvRate"));
+      if(sp.get("volumeDays")!=null) pendingVolumeDays = String(sp.get("volumeDays"));
+
+      // 自動化ルートの引継ぎ（任意）
+      if(sp.get("hourCost")!=null) pendingHourCost = String(sp.get("hourCost"));
 
       history.replaceState(null, "", location.pathname);
       return true;
@@ -660,9 +744,16 @@
       return a ? a.dataset.avgKey : "";
     }
 
-    // state
+    // ====== state ======
     let selectedRoute = "";
     let detailBuiltFor = "";
+    let volumeLabelKey = "generic";
+
+    // クエリから一時的に受け取る値（route UI生成後に反映する）
+    let pendingVolumeUnitPrice = "";
+    let pendingVolumeConvRate = "";
+    let pendingVolumeDays = "";
+    let pendingHourCost = "";
 
     function getState(){
       return {
@@ -675,9 +766,16 @@
         targetScope: $("targetScope").value,
         checkKpi: $("checkKpi").value,
         freeMemo: $("freeMemo").value,
-        avgPrice: $("avgPriceInput") ? $("avgPriceInput").value : "",
+        activeAvgKey: getActiveAvgKey(),
+
+        // quantity route
+        volumeLabelKey,
+        volumeUnitPrice: $("volumeUnitPrice") ? $("volumeUnitPrice").value : "",
+        volumeConvRate: $("volumeConvRate") ? $("volumeConvRate").value : "",
+        volumeDays: $("volumeDays") ? $("volumeDays").value : "",
+
+        // auto route
         hourCost: $("hourCostInput") ? $("hourCostInput").value : "",
-        activeAvgKey: getActiveAvgKey()
       };
     }
     function persist(){ save(getState()); }
@@ -695,10 +793,25 @@
       if(v.checkKpi!=null) $("checkKpi").value = v.checkKpi;
       if(v.freeMemo!=null) $("freeMemo").value = v.freeMemo;
 
+      if(v.volumeLabelKey) volumeLabelKey = v.volumeLabelKey;
+
       if(v.selectedRoute==="price" || v.selectedRoute==="volume" || v.selectedRoute==="auto"){
         setRoute(v.selectedRoute);
-        if($("avgPriceInput") && v.avgPrice!=null) $("avgPriceInput").value = v.avgPrice;
-        if($("hourCostInput") && v.hourCost!=null) $("hourCostInput").value = v.hourCost;
+
+        // route detail 생성後に 넣는다
+        setTimeout(()=>{
+          if($("volumeUnitPrice") && v.volumeUnitPrice!=null) $("volumeUnitPrice").value = v.volumeUnitPrice;
+          if($("volumeConvRate") && v.volumeConvRate!=null) $("volumeConvRate").value = v.volumeConvRate;
+          if($("volumeDays") && v.volumeDays!=null) $("volumeDays").value = v.volumeDays;
+
+          if($("hourCostInput") && v.hourCost!=null) $("hourCostInput").value = v.hourCost;
+
+          bindLiveFormatting(document);
+          document.querySelectorAll('input[data-format="int"]').forEach(formatIntInput);
+          document.querySelectorAll('input[data-format="decimal"]').forEach(formatDecimalInput);
+
+          render();
+        }, 0);
       }else{
         setRoute("");
       }
@@ -719,20 +832,63 @@
       return { spendMonthly, cmr, annualSales, monthlySales, salesEqM, salesEqY, shareY, needPricePct };
     }
 
+    function volLabels(){
+      return VOLUME_LABEL_SETS[volumeLabelKey] || VOLUME_LABEL_SETS.generic;
+    }
+
+    function buildVolumeLabelChips(container){
+      const grid = document.createElement("div");
+      grid.className = "avgGrid";
+      Object.keys(VOLUME_LABEL_SETS).forEach(k=>{
+        const item = VOLUME_LABEL_SETS[k];
+        const b = document.createElement("button");
+        b.type="button";
+        b.className="avgBtn";
+        b.dataset.vkey = item.key;
+        b.innerHTML = `<span class="lab">用語</span><span>${item.label}</span>`;
+        b.classList.toggle("active", item.key===volumeLabelKey);
+        b.addEventListener("click", ()=>{
+          // 値を保持したままUIだけ再構築
+          const keep = {
+            unitPrice: $("volumeUnitPrice") ? $("volumeUnitPrice").value : "",
+            convRate: $("volumeConvRate") ? $("volumeConvRate").value : "",
+            days: $("volumeDays") ? $("volumeDays").value : ""
+          };
+          volumeLabelKey = item.key;
+          detailBuiltFor = ""; // force rebuild
+          buildRouteDetailUI(); // rebuild
+          // restore
+          if($("volumeUnitPrice")) $("volumeUnitPrice").value = keep.unitPrice;
+          if($("volumeConvRate")) $("volumeConvRate").value = keep.convRate;
+          if($("volumeDays")) $("volumeDays").value = keep.days;
+
+          bindLiveFormatting(document);
+          document.querySelectorAll('input[data-format="int"]').forEach(formatIntInput);
+          document.querySelectorAll('input[data-format="decimal"]').forEach(formatDecimalInput);
+
+          updateRouteDetailKPIs();
+          persist();
+        });
+        grid.appendChild(b);
+      });
+      container.appendChild(grid);
+    }
+
     // Step2 detail build/update
     function buildRouteDetailUI(){
       if(!selectedRoute) return;
       if(detailBuiltFor === selectedRoute) return;
 
-      const inputA      = $("detailInputA");
-      const inputB      = $("detailInputB");
-      const kpi         = $("detailKpi");
+      const inputA = $("detailInputA");
+      const inputB = $("detailInputB");
+      const kpi = $("detailKpi");
 
       inputA.innerHTML = "";
       inputB.innerHTML = "";
       kpi.innerHTML = "";
       $("detailHint").textContent = "";
 
+      // ===== price =====
       if(selectedRoute === "price"){
         $("detailTitle").textContent = "単価を上げる（深掘り）";
         $("detailSub").textContent   = "月商に対して、どの程度の上乗せが必要かを目安で確認します。";
@@ -760,45 +916,124 @@
         $("detailHint").textContent = "次に『どの商品/客層/契約が対象か』『いつから実施するか』を決めると、実行に落ちます。";
       }
 
+      // ===== volume (abstracted) =====
       if(selectedRoute === "volume"){
+        const L = volLabels();
+
         $("detailTitle").textContent = "数量を上げる（深掘り）";
-        $("detailSub").textContent   = "平均単価から、必要な追加件数の目安を確認します。";
+        $("detailSub").textContent   = "業種を問わず「取引単価×取引数」の整理で、必要な追加件数と入口数を数字で揃えます。";
 
+        // 左：入力（単価、成約率、稼働日数）
         inputA.innerHTML = `
-          <label for="avgPriceInput">平均単価（円 / 任意）</label>
-          <input id="avgPriceInput" inputmode="numeric" placeholder="例：12,000" data-format="int" />
-          <div class="help">商品単価・客単価・1件あたり粗利など、使える単価でOKです（概算）。</div>
-        `;
-        inputB.innerHTML = `
-          <label>ポイント</label>
-          <div class="help">件数を増やす方向は、稼働・キャパ・現場の体制とセットで考えると現実的です。</div>
+          <label>入力</label>
+
+          <div class="avgWrap" style="margin-top:6px;">
+            <div class="avgTitle">用語の言い換え（任意）</div>
+            <div id="volumeLabelChips"></div>
+            <div class="help" style="margin-top:8px;">
+              ※ここは<strong>言葉の言い換え</strong>です。計算は同じです。まずは「汎用」でOKです。
+            </div>
+          </div>
+
+          <div style="margin-top:10px;">
+            <label for="volumeUnitPrice">${L.unitPriceLabel}</label>
+            <input id="volumeUnitPrice" inputmode="numeric" placeholder="例：12,000" data-format="int" />
+            <div class="help">${L.unitHelp}</div>
+          </div>
+
+          <div style="margin-top:10px;">
+            <label for="volumeConvRate">${L.convLabel}（% / 任意）</label>
+            <input id="volumeConvRate" inputmode="decimal" placeholder="例：30" data-format="decimal" />
+            <div class="help">${L.convHelp}</div>
+          </div>
+
+          <div style="margin-top:10px;">
+            <label for="volumeDays">${L.daysLabel}（任意）</label>
+            <input id="volumeDays" inputmode="numeric" placeholder="例：25" data-format="int" />
+            <div class="help">日割りの目安（「1日あたり必要数」）を出したい場合に入力してください。</div>
+          </div>
         `;
 
+        // 右：補助説明（入口の考え方など）
+        inputB.innerHTML = `
+          <label>整理のしかた</label>
+          <div class="help">
+            ① 売上換算額（必要な売上）を出す → ② ${L.unitPriceLabel} で割って<strong>必要な追加${L.txName}数</strong>を出す<br>
+            ③ さらに ${L.convLabel} を使って<strong>${L.entryLabel}</strong>（前段の数）を目安で出します。
+          </div>
+
+          <div class="note" style="margin-top:10px;">
+            数量アップは「入口を増やす」だけでなく、「成約率を上げる」でも実現できます。<br>
+            どちらが現実的かを、この画面で一緒に整理するのが狙いです。
+          </div>
+        `;
+
+        // KPI 4つ（追加取引/月・日、必要入口/月・日）
         kpi.innerHTML = `
           <div class="k2">
-            <div class="t">売上換算額（円 / 月）</div>
-            <div class="v" id="kpiSalesEqM">—</div>
+            <div class="t">必要な追加${L.txName}数（${L.unitShort}/月）</div>
+            <div class="v" id="kpiNeedTxM">—</div>
           </div>
           <div class="k2">
-            <div class="t">必要な追加件数（件/個 など / 月）</div>
-            <div class="v" id="kpiNeedUnits">—</div>
+            <div class="t">必要な追加${L.txName}数（${L.unitShort}/日）※日数入力時</div>
+            <div class="v" id="kpiNeedTxD">—</div>
+          </div>
+          <div class="k2">
+            <div class="t">必要な${L.entryLabel}（${L.entryShort}/月）※成約率入力時</div>
+            <div class="v" id="kpiNeedEntryM">—</div>
+          </div>
+          <div class="k2">
+            <div class="t">必要な${L.entryLabel}（${L.entryShort}/日）※成約率+日数入力時</div>
+            <div class="v" id="kpiNeedEntryD">—</div>
           </div>
         `;
 
-        $("detailHint").textContent = "『受注の入口』『現場の処理能力』『継続率』のどこを強化するかが実行の要点になります。";
+        $("detailHint").textContent =
+          "次に『入口を増やす（施策）』か『成約率を上げる（改善）』のどちらを主軸にするかを決めると、動きやすくなります。";
 
-        const st = load();
-        if(st && st.avgPrice != null) $("avgPriceInput").value = st.avgPrice;
+        // chips mount
+        const mount = $("volumeLabelChips");
+        if(mount){
+          mount.innerHTML = "";
+          buildVolumeLabelChips(mount);
+        }
 
-        bindLiveFormatting();
-        formatIntInput($("avgPriceInput"));
+        // bind + listeners
+        bindLiveFormatting(document);
 
-        $("avgPriceInput").addEventListener("input", ()=>{
+        const unitEl = $("volumeUnitPrice");
+        const convEl = $("volumeConvRate");
+        const dayEl  = $("volumeDays");
+
+        // restore from pending query once (if exists)
+        if(pendingVolumeUnitPrice && unitEl && !unitEl.value){
+          unitEl.value = pendingVolumeUnitPrice;
+          pendingVolumeUnitPrice = "";
+        }
+        if(pendingVolumeConvRate && convEl && !convEl.value){
+          convEl.value = pendingVolumeConvRate;
+          pendingVolumeConvRate = "";
+        }
+        if(pendingVolumeDays && dayEl && !dayEl.value){
+          dayEl.value = pendingVolumeDays;
+          pendingVolumeDays = "";
+        }
+
+        // format now
+        if(unitEl) formatIntInput(unitEl);
+        if(convEl) formatDecimalInput(convEl);
+        if(dayEl)  formatIntInput(dayEl);
+
+        const onVolInput = ()=>{
           updateRouteDetailKPIs();
           persist();
-        });
+        };
+        if(unitEl) unitEl.addEventListener("input", onVolInput);
+        if(convEl) convEl.addEventListener("input", onVolInput);
+        if(dayEl)  dayEl.addEventListener("input", onVolInput);
       }
 
+      // ===== auto =====
       if(selectedRoute === "auto"){
         $("detailTitle").textContent = "経理プロセスを自動化する（深掘り）";
         $("detailSub").textContent   = "支出額を“削減できる時間”に置き換えて、回収の目安を確認します。";
@@ -826,16 +1061,21 @@
 
         $("detailHint").textContent = "『どの作業を削るか（入力/請求/回収/証憑）』『運用ルール』まで決めると、再現性が出ます。";
 
-        const st = load();
-        if(st && st.hourCost != null) $("hourCostInput").value = st.hourCost;
+        bindLiveFormatting(document);
+        const hourEl = $("hourCostInput");
 
-        bindLiveFormatting();
-        formatIntInput($("hourCostInput"));
+        if(pendingHourCost && hourEl && !hourEl.value){
+          hourEl.value = pendingHourCost;
+          pendingHourCost = "";
+        }
+        if(hourEl) formatIntInput(hourEl);
 
-        $("hourCostInput").addEventListener("input", ()=>{
-          updateRouteDetailKPIs();
-          persist();
-        });
+        if(hourEl){
+          hourEl.addEventListener("input", ()=>{
+            updateRouteDetailKPIs();
+            persist();
+          });
+        }
       }
 
       detailBuiltFor = selectedRoute;
@@ -853,9 +1093,25 @@
       }
 
       if(selectedRoute === "volume"){
-        const avg = $("avgPriceInput") ? num($("avgPriceInput").value) : 0;
-        const needUnits = (avg>0 && Number.isFinite(c.salesEqM)) ? (c.salesEqM/avg) : NaN;
-        if($("kpiNeedUnits")) $("kpiNeedUnits").textContent = Number.isFinite(needUnits) ? (ceil1(needUnits)+" /月") : "—";
+        const L = volLabels();
+        const unitPrice = $("volumeUnitPrice") ? num($("volumeUnitPrice").value) : 0;
+        const convRate = $("volumeConvRate") ? num($("volumeConvRate").value) : 0;
+        const days = $("volumeDays") ? num($("volumeDays").value) : 0;
+
+        const needTxM = (unitPrice>0 && Number.isFinite(c.salesEqM)) ? (c.salesEqM / unitPrice) : NaN;
+        const needTxD = (days>0 && Number.isFinite(needTxM)) ? (needTxM / days) : NaN;
+
+        const needEntryM = (convRate>0 && Number.isFinite(needTxM)) ? (needTxM / (convRate/100)) : NaN;
+        const needEntryD = (days>0 && Number.isFinite(needEntryM)) ? (needEntryM / days) : NaN;
+
+        if($("kpiNeedTxM")) $("kpiNeedTxM").textContent =
+          Number.isFinite(needTxM) ? (ceil1(needTxM) + " " + L.unitShort + "/月") : "—";
+        if($("kpiNeedTxD")) $("kpiNeedTxD").textContent =
+          Number.isFinite(needTxD) ? (ceil1(needTxD) + " " + L.unitShort + "/日") : "—";
+        if($("kpiNeedEntryM")) $("kpiNeedEntryM").textContent =
+          Number.isFinite(needEntryM) ? (ceil1(needEntryM) + " " + L.entryShort + "/月") : "—";
+        if($("kpiNeedEntryD")) $("kpiNeedEntryD").textContent =
+          Number.isFinite(needEntryD) ? (ceil1(needEntryD) + " " + L.entryShort + "/日") : "—";
       }
 
       if(selectedRoute === "auto"){
@@ -937,7 +1193,7 @@
       restore(st);
     }
 
-    bindLiveFormatting();
+    bindLiveFormatting(document);
     document.querySelectorAll('input[data-format="int"]').forEach(formatIntInput);
     document.querySelectorAll('input[data-format="decimal"]').forEach(formatDecimalInput);
 
@@ -972,7 +1228,6 @@
     $("btnClose").addEventListener("click", closeModal);
     $("modalBack").addEventListener("click", (e)=>{ if(e.target === $("modalBack")) closeModal(); });
 
-    // ★ここが前回の致命傷：構文エラーを修正
     window.addEventListener("keydown", (e)=>{
       if(e.key === "Escape") closeModal();
     });
@@ -996,9 +1251,18 @@
         routeDetail = `・必要な上乗せ率（%）※月商入力時：${Number.isFinite(c.needPricePct)?pct1(c.needPricePct):"—"}`;
       }
       if(selectedRoute==="volume"){
-        const avg = $("avgPriceInput") ? num($("avgPriceInput").value) : 0;
-        const needUnits = (avg>0 && Number.isFinite(c.salesEqM)) ? (c.salesEqM/avg) : NaN;
-        routeDetail = `・平均単価：${avg?yen(avg):"—"}／必要な追加件数：${Number.isFinite(needUnits)?(ceil1(needUnits)+" /月"):"—"}`;
+        const L = volLabels();
+        const unitPrice = $("volumeUnitPrice") ? num($("volumeUnitPrice").value) : 0;
+        const convRate = $("volumeConvRate") ? num($("volumeConvRate").value) : 0;
+        const days = $("volumeDays") ? num($("volumeDays").value) : 0;
+        const needTxM = (unitPrice>0 && Number.isFinite(c.salesEqM)) ? (c.salesEqM / unitPrice) : NaN;
+        const needEntryM = (convRate>0 && Number.isFinite(needTxM)) ? (needTxM / (convRate/100)) : NaN;
+        routeDetail =
+`・${L.unitPriceLabel}：${unitPrice?yen(unitPrice):"—"}
+・${L.convLabel}：${$("volumeConvRate") && $("volumeConvRate").value ? ($("volumeConvRate").value+"%") : "—"}
+・必要な追加${L.txName}数：${Number.isFinite(needTxM)?(ceil1(needTxM)+" "+L.unitShort+"/月"):"—"}
+・必要な${L.entryLabel}：${Number.isFinite(needEntryM)?(ceil1(needEntryM)+" "+L.entryShort+"/月"):"—"}
+・${L.daysLabel}：${days?days+"日":"—"}`;
       }
       if(selectedRoute==="auto"){
         const hour = $("hourCostInput") ? num($("hourCostInput").value) : 0;
@@ -1037,6 +1301,7 @@ ${routeDetail ? routeDetail : ""}
     $("btnReset").addEventListener("click", ()=>{
       ["spendMonthly","cmr","annualSales","monthlySales","startDate","targetScope","checkKpi","freeMemo"].forEach(id=>$(id).value="");
       setActiveAvg("");
+      volumeLabelKey = "generic";
       setRoute("");
       localStorage.removeItem(KEY);
       render();
