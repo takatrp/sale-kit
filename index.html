@@ -41,7 +41,7 @@
     .topin{
       max-width:980px; margin:0 auto;
       padding:10px 14px;
-      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      display:flex; align-items:center; justify-content:flex-start; gap:10px;
     }
     .brand{
       display:flex; align-items:center; gap:10px; min-width:0;
@@ -57,7 +57,7 @@
     }
     .btxt{min-width:0}
 
-    /* タイトルを大きく（ご要望） */
+    /* タイトルを大きく */
     .bttl{
       font-weight:900;
       font-size:20px;
@@ -241,6 +241,12 @@
     .k2 .v{font-size:16px; font-weight:900; margin-top:6px}
     .mutedLine{margin-top:8px; color:var(--muted); font-size:12px}
 
+    /* bottom action area */
+    .actionsHead{
+      display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
+    }
+    .actionsHead .p{margin:0}
+
     /* modal */
     .modalBack{
       position:fixed; inset:0; z-index:100;
@@ -298,11 +304,7 @@
           <div class="bsub">支出額を売上換算 → 打ち手を検討</div>
         </div>
       </div>
-      <div class="btns">
-        <button class="btn ghost" id="btnCopy">要点をコピー</button>
-        <button class="btn" id="btnPrint">印刷 / PDF</button>
-        <button class="btn primary" id="btnReset">リセット</button>
-      </div>
+      <!-- ★ 上部のボタンは削除（最下部に移動） -->
     </div>
   </div>
 
@@ -400,7 +402,6 @@
 
           <div class="bigCard">
             <div class="grow">
-              <!-- ★ 反映：経理→業務（時間創出） -->
               <h3>業務プロセスを自動化（時間創出）</h3>
               <p>時間を作り、その時間で付加価値活動へ移す方向です（回収に必要な削減時間の目安が出ます）。</p>
             </div>
@@ -467,6 +468,21 @@
         <div style="margin-top:10px;">
           <label>自由記入（決定事項 / 宿題 / メモ）</label>
           <textarea id="freeMemo" placeholder="例：対象、実施手順、担当、期限、想定リスクと対策、次回までの宿題など"></textarea>
+        </div>
+      </section>
+
+      <!-- ★ 最下部：操作ボタン -->
+      <section class="card">
+        <div class="actionsHead">
+          <div>
+            <h2 style="margin:0;">操作</h2>
+            <div class="p">必要に応じて、要点をコピーしたり、印刷/PDFでお渡しできます。</div>
+          </div>
+          <div class="btns">
+            <button class="btn ghost" id="btnCopy">要点をコピー</button>
+            <button class="btn" id="btnPrint">印刷 / PDF</button>
+            <button class="btn primary" id="btnReset">リセット</button>
+          </div>
         </div>
       </section>
 
@@ -799,7 +815,6 @@
       if(v.selectedRoute==="price" || v.selectedRoute==="volume" || v.selectedRoute==="auto"){
         setRoute(v.selectedRoute);
 
-        // route detail 생성後に 넣는다
         setTimeout(()=>{
           if($("volumeUnitPrice") && v.volumeUnitPrice!=null) $("volumeUnitPrice").value = v.volumeUnitPrice;
           if($("volumeConvRate") && v.volumeConvRate!=null) $("volumeConvRate").value = v.volumeConvRate;
@@ -849,16 +864,14 @@
         b.innerHTML = `<span class="lab">用語</span><span>${item.label}</span>`;
         b.classList.toggle("active", item.key===volumeLabelKey);
         b.addEventListener("click", ()=>{
-          // 値を保持したままUIだけ再構築
           const keep = {
             unitPrice: $("volumeUnitPrice") ? $("volumeUnitPrice").value : "",
             convRate: $("volumeConvRate") ? $("volumeConvRate").value : "",
             days: $("volumeDays") ? $("volumeDays").value : ""
           };
           volumeLabelKey = item.key;
-          detailBuiltFor = ""; // force rebuild
-          buildRouteDetailUI(); // rebuild
-          // restore
+          detailBuiltFor = "";
+          buildRouteDetailUI();
           if($("volumeUnitPrice")) $("volumeUnitPrice").value = keep.unitPrice;
           if($("volumeConvRate")) $("volumeConvRate").value = keep.convRate;
           if($("volumeDays")) $("volumeDays").value = keep.days;
@@ -889,7 +902,6 @@
       kpi.innerHTML = "";
       $("detailHint").textContent = "";
 
-      // ===== price =====
       if(selectedRoute === "price"){
         $("detailTitle").textContent = "単価を上げる（深掘り）";
         $("detailSub").textContent   = "月商に対して、どの程度の上乗せが必要かを目安で確認します。";
@@ -917,14 +929,12 @@
         $("detailHint").textContent = "次に『どの商品/客層/契約が対象か』『いつから実施するか』を決めると、実行に落ちます。";
       }
 
-      // ===== volume (abstracted) =====
       if(selectedRoute === "volume"){
         const L = volLabels();
 
         $("detailTitle").textContent = "数量を上げる（深掘り）";
         $("detailSub").textContent   = "業種を問わず「取引単価×取引数」の整理で、必要な追加件数と入口数を数字で揃えます。";
 
-        // 左：入力（単価、成約率、稼働日数）
         inputA.innerHTML = `
           <label>入力</label>
 
@@ -955,7 +965,6 @@
           </div>
         `;
 
-        // 右：補助説明（入口の考え方など）
         inputB.innerHTML = `
           <label>整理のしかた</label>
           <div class="help">
@@ -969,7 +978,6 @@
           </div>
         `;
 
-        // KPI 4つ（追加取引/月・日、必要入口/月・日）
         kpi.innerHTML = `
           <div class="k2">
             <div class="t">必要な追加${L.txName}数（${L.unitShort}/月）</div>
@@ -992,21 +1000,18 @@
         $("detailHint").textContent =
           "次に『入口を増やす（施策）』か『成約率を上げる（改善）』のどちらを主軸にするかを決めると、動きやすくなります。";
 
-        // chips mount
         const mount = $("volumeLabelChips");
         if(mount){
           mount.innerHTML = "";
           buildVolumeLabelChips(mount);
         }
 
-        // bind + listeners
         bindLiveFormatting(document);
 
         const unitEl = $("volumeUnitPrice");
         const convEl = $("volumeConvRate");
         const dayEl  = $("volumeDays");
 
-        // restore from pending query once (if exists)
         if(pendingVolumeUnitPrice && unitEl && !unitEl.value){
           unitEl.value = pendingVolumeUnitPrice;
           pendingVolumeUnitPrice = "";
@@ -1020,7 +1025,6 @@
           pendingVolumeDays = "";
         }
 
-        // format now
         if(unitEl) formatIntInput(unitEl);
         if(convEl) formatDecimalInput(convEl);
         if(dayEl)  formatIntInput(dayEl);
@@ -1034,9 +1038,7 @@
         if(dayEl)  dayEl.addEventListener("input", onVolInput);
       }
 
-      // ===== auto =====
       if(selectedRoute === "auto"){
-        // ★ 反映：経理→業務
         $("detailTitle").textContent = "業務プロセスを自動化する（深掘り）";
         $("detailSub").textContent   = "支出額を“削減できる時間”に置き換えて、回収の目安を確認します。";
 
@@ -1153,7 +1155,6 @@
       $("selectedRouteLabel").value =
         selectedRoute==="price" ? "単価を上げる" :
         selectedRoute==="volume" ? "数量を上げる" :
-        // ★ 反映：経理→業務
         selectedRoute==="auto" ? "業務プロセスを自動化（時間創出）" :
         "（未選択）";
 
@@ -1246,7 +1247,6 @@
       const routeLabel =
         selectedRoute==="price" ? "単価を上げる" :
         selectedRoute==="volume" ? "数量を上げる" :
-        // ★ 反映：経理→業務（コピー文言）
         selectedRoute==="auto" ? "業務プロセスを自動化する" :
         "（未選択）";
 
