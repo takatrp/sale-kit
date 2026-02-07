@@ -44,11 +44,12 @@
       display:flex; align-items:center; justify-content:flex-start; gap:10px;
     }
     .brand{
-      display:flex; align-items:center; gap:10px; min-width:0;
+      display:flex; align-items:center; gap:12px; min-width:0;
     }
+    /* ★ アイコン（ロゴ）を少し大きく */
     .logo{
-      width:34px; height:34px;
-      border-radius:10px;
+      width:44px; height:44px;
+      border-radius:14px;
       border:1px solid rgba(87,136,153,.35);
       background:#fff;
       object-fit:cover;
@@ -57,7 +58,6 @@
     }
     .btxt{min-width:0}
 
-    /* タイトルを大きく */
     .bttl{
       font-weight:900;
       font-size:20px;
@@ -137,6 +137,13 @@
       font-size:16px;
       outline:none;
     }
+
+    /* ★ プレースホルダーを薄く */
+    input::placeholder, textarea::placeholder{ color: rgba(86,112,122,.45); }
+    input::-webkit-input-placeholder, textarea::-webkit-input-placeholder{ color: rgba(86,112,122,.45); }
+    input::-moz-placeholder, textarea::-moz-placeholder{ color: rgba(86,112,122,.45); opacity:1; }
+    input:-ms-input-placeholder, textarea:-ms-input-placeholder{ color: rgba(86,112,122,.45); }
+
     textarea{min-height:110px; resize:vertical}
     input:focus, textarea:focus{
       border-color:rgba(87,136,153,.55);
@@ -165,7 +172,6 @@
       font-size:12px;
     }
 
-    /* chips area */
     .avgWrap{margin-top:10px}
     .avgTitle{font-size:12px; color:var(--muted); font-weight:900; margin:0 0 8px}
     .avgGrid{display:flex; flex-wrap:wrap; gap:8px}
@@ -190,7 +196,6 @@
     .avgBtn .lab{color:var(--muted); font-weight:800; font-size:12px}
     .avgBtn.active{border-color:rgba(87,136,153,.65); background:rgba(87,136,153,.12)}
 
-    /* Step2 chooser */
     .chooser{
       margin-top:12px;
       display:grid;
@@ -241,13 +246,11 @@
     .k2 .v{font-size:16px; font-weight:900; margin-top:6px}
     .mutedLine{margin-top:8px; color:var(--muted); font-size:12px}
 
-    /* bottom action area */
     .actionsHead{
       display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
     }
     .actionsHead .p{margin:0}
 
-    /* modal */
     .modalBack{
       position:fixed; inset:0; z-index:100;
       background:rgba(10,20,25,.35);
@@ -304,7 +307,6 @@
           <div class="bsub">支出額を売上換算 → 打ち手を検討</div>
         </div>
       </div>
-      <!-- ★ 上部のボタンは削除（最下部に移動） -->
     </div>
   </div>
 
@@ -326,7 +328,7 @@
           <div>
             <label for="spendMonthly">今回検討する支出額（円 / 月）</label>
             <input id="spendMonthly" inputmode="numeric" pattern="[0-9]*" placeholder="例：20,000" data-format="int" />
-            <div class="help">例：顧問料の差額、追加投資、外注費、固定費の増加など。</div>
+            <div class="help">例：追加投資、外注費、固定費の増加など。</div>
           </div>
 
           <div>
@@ -471,7 +473,7 @@
         </div>
       </section>
 
-      <!-- ★ 最下部：操作ボタン -->
+      <!-- 最下部：操作ボタン -->
       <section class="card">
         <div class="actionsHead">
           <div>
@@ -509,14 +511,12 @@
   </div>
 
   <script>
-    // ====== ツールURL（必要に応じて差替え） ======
     const TOOL_URLS = {
       price:  "https://takatrp.github.io/price-up-down-LP/",
       volume: "https://takatrp.github.io/hendou_PL_LP/",
       auto:   "https://takatrp.github.io/jidouka-kouka-LP/"
     };
 
-    // ====== 参考：産業ごとの全国平均（添付画像の値） ======
     const INDUSTRY_AVG = [
       { key:"all",   label:"全産業", value:43.6 },
       { key:"fish",  label:"漁業",   value:64.6 },
@@ -528,7 +528,6 @@
       { key:"food",  label:"飲食業", value:64.1 },
     ];
 
-    // ====== 数量ルート：ラベル言い換え（計算は同じ） ======
     const VOLUME_LABEL_SETS = {
       generic: {
         key:"generic",
@@ -630,7 +629,6 @@
       return (Math.ceil(n*10)/10).toString();
     }
 
-    // ====== リアルタイムコンマ入力（カーソル位置維持） ======
     function formatIntInput(el){
       const raw = String(el.value ?? "");
       const caret = (el.selectionStart ?? raw.length);
@@ -654,7 +652,6 @@
       }catch(e){}
     }
 
-    // 小数入力：コンマ除去・小数点正規化（入力途中の "52." を維持）
     function formatDecimalInput(el){
       const raw = String(el.value ?? "");
       const caret = (el.selectionStart ?? raw.length);
@@ -671,7 +668,6 @@
       }catch(e){}
     }
 
-    // バインド（重複防止）
     function bindLiveFormatting(root=document){
       root.querySelectorAll('input[data-format="int"]').forEach(el=>{
         if(el.dataset.boundInt === "1") return;
@@ -697,7 +693,6 @@
       try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){}
     }
 
-    // URL引継ぎ（クエリ優先）& URLクリーン化
     function applyFromQuery(){
       const sp = new URLSearchParams(location.search);
       const hasAny =
@@ -718,20 +713,17 @@
         setRoute(r);
       }
 
-      // 数量ルートの引継ぎ（任意）
       if(sp.get("volumeLabelKey")!=null) volumeLabelKey = String(sp.get("volumeLabelKey"));
       if(sp.get("volumeUnitPrice")!=null) pendingVolumeUnitPrice = String(sp.get("volumeUnitPrice"));
       if(sp.get("volumeConvRate")!=null) pendingVolumeConvRate = String(sp.get("volumeConvRate"));
       if(sp.get("volumeDays")!=null) pendingVolumeDays = String(sp.get("volumeDays"));
 
-      // 自動化ルートの引継ぎ（任意）
       if(sp.get("hourCost")!=null) pendingHourCost = String(sp.get("hourCost"));
 
       history.replaceState(null, "", location.pathname);
       return true;
     }
 
-    // industry avg chips
     function buildAvgChips(){
       const grid = $("avgGrid");
       grid.innerHTML = "";
@@ -761,12 +753,10 @@
       return a ? a.dataset.avgKey : "";
     }
 
-    // ====== state ======
     let selectedRoute = "";
     let detailBuiltFor = "";
     let volumeLabelKey = "generic";
 
-    // クエリから一時的に受け取る値（route UI生成後に反映する）
     let pendingVolumeUnitPrice = "";
     let pendingVolumeConvRate = "";
     let pendingVolumeDays = "";
@@ -784,14 +774,10 @@
         checkKpi: $("checkKpi").value,
         freeMemo: $("freeMemo").value,
         activeAvgKey: getActiveAvgKey(),
-
-        // quantity route
         volumeLabelKey,
         volumeUnitPrice: $("volumeUnitPrice") ? $("volumeUnitPrice").value : "",
         volumeConvRate: $("volumeConvRate") ? $("volumeConvRate").value : "",
         volumeDays: $("volumeDays") ? $("volumeDays").value : "",
-
-        // auto route
         hourCost: $("hourCostInput") ? $("hourCostInput").value : "",
       };
     }
@@ -833,7 +819,6 @@
       }
     }
 
-    // compute
     function compute(){
       const spendMonthly = num($("spendMonthly").value);
       const cmr = num($("cmr").value);
@@ -888,7 +873,6 @@
       container.appendChild(grid);
     }
 
-    // Step2 detail build/update
     function buildRouteDetailUI(){
       if(!selectedRoute) return;
       if(detailBuiltFor === selectedRoute) return;
@@ -1166,7 +1150,6 @@
       persist();
     }
 
-    // modal
     let currentUrl = "";
     function getToolTitle(){
       return selectedRoute==="price" ? "価格改定ツール" :
@@ -1188,7 +1171,6 @@
       currentUrl = "";
     }
 
-    // init
     buildAvgChips();
 
     const fromQuery = applyFromQuery();
