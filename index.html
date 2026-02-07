@@ -323,13 +323,13 @@
         <div class="row" style="margin-top:12px;">
           <div>
             <label for="spendMonthly">今回検討する支出額（円 / 月）</label>
-            <input id="spendMonthly" inputmode="numeric" placeholder="例：20,000" data-format="int" />
+            <input id="spendMonthly" inputmode="numeric" pattern="[0-9]*" placeholder="例：20,000" data-format="int" />
             <div class="help">例：顧問料の差額、追加投資、外注費、固定費の増加など。</div>
           </div>
 
           <div>
             <label for="cmr">限界利益率（%）</label>
-            <input id="cmr" inputmode="decimal" placeholder="例：30" data-format="decimal" />
+            <input id="cmr" inputmode="decimal" pattern="[0-9.]*" placeholder="例：30" data-format="decimal" />
             <div class="help">わからなければ、下の「参考：産業ごとの全国平均」から当てて目安を出せます。</div>
 
             <div class="avgWrap">
@@ -342,12 +342,12 @@
         <div class="row" style="margin-top:10px;">
           <div>
             <label for="annualSales">年商（任意 / 円）</label>
-            <input id="annualSales" inputmode="numeric" placeholder="例：120,000,000" data-format="int" />
+            <input id="annualSales" inputmode="numeric" pattern="[0-9]*" placeholder="例：120,000,000" data-format="int" />
             <div class="help">入力すると「年商の何%か」を表示します。</div>
           </div>
           <div>
             <label for="monthlySales">月商（任意 / 円）</label>
-            <input id="monthlySales" inputmode="numeric" placeholder="例：10,000,000" data-format="int" />
+            <input id="monthlySales" inputmode="numeric" pattern="[0-9]*" placeholder="例：10,000,000" data-format="int" />
             <div class="help">単価ルートの「必要な上乗せ率（目安）」の計算に使います。</div>
           </div>
         </div>
@@ -400,7 +400,8 @@
 
           <div class="bigCard">
             <div class="grow">
-              <h3>経理プロセスを自動化する</h3>
+              <!-- ★ 反映：経理→業務（時間創出） -->
+              <h3>業務プロセスを自動化（時間創出）</h3>
               <p>時間を作り、その時間で付加価値活動へ移す方向です（回収に必要な削減時間の目安が出ます）。</p>
             </div>
             <button class="btn primary" data-pick="auto">この方向で深掘り</button>
@@ -937,19 +938,19 @@
 
           <div style="margin-top:10px;">
             <label for="volumeUnitPrice">${L.unitPriceLabel}</label>
-            <input id="volumeUnitPrice" inputmode="numeric" placeholder="例：12,000" data-format="int" />
+            <input id="volumeUnitPrice" inputmode="numeric" pattern="[0-9]*" placeholder="例：12,000" data-format="int" />
             <div class="help">${L.unitHelp}</div>
           </div>
 
           <div style="margin-top:10px;">
             <label for="volumeConvRate">${L.convLabel}（% / 任意）</label>
-            <input id="volumeConvRate" inputmode="decimal" placeholder="例：30" data-format="decimal" />
+            <input id="volumeConvRate" inputmode="decimal" pattern="[0-9.]*" placeholder="例：30" data-format="decimal" />
             <div class="help">${L.convHelp}</div>
           </div>
 
           <div style="margin-top:10px;">
             <label for="volumeDays">${L.daysLabel}（任意）</label>
-            <input id="volumeDays" inputmode="numeric" placeholder="例：25" data-format="int" />
+            <input id="volumeDays" inputmode="numeric" pattern="[0-9]*" placeholder="例：25" data-format="int" />
             <div class="help">日割りの目安（「1日あたり必要数」）を出したい場合に入力してください。</div>
           </div>
         `;
@@ -1035,12 +1036,13 @@
 
       // ===== auto =====
       if(selectedRoute === "auto"){
-        $("detailTitle").textContent = "経理プロセスを自動化する（深掘り）";
+        // ★ 反映：経理→業務
+        $("detailTitle").textContent = "業務プロセスを自動化する（深掘り）";
         $("detailSub").textContent   = "支出額を“削減できる時間”に置き換えて、回収の目安を確認します。";
 
         inputA.innerHTML = `
           <label for="hourCostInput">時間単価（円 / 時）</label>
-          <input id="hourCostInput" inputmode="numeric" placeholder="例：3,000" data-format="int" />
+          <input id="hourCostInput" inputmode="numeric" pattern="[0-9]*" placeholder="例：3,000" data-format="int" />
           <div class="help">社内の実態に合わせた目安でOKです（概算）。</div>
         `;
         inputB.innerHTML = `
@@ -1151,7 +1153,8 @@
       $("selectedRouteLabel").value =
         selectedRoute==="price" ? "単価を上げる" :
         selectedRoute==="volume" ? "数量を上げる" :
-        selectedRoute==="auto" ? "経理プロセスを自動化する" :
+        // ★ 反映：経理→業務
+        selectedRoute==="auto" ? "業務プロセスを自動化（時間創出）" :
         "（未選択）";
 
       if(selectedRoute){
@@ -1243,7 +1246,8 @@
       const routeLabel =
         selectedRoute==="price" ? "単価を上げる" :
         selectedRoute==="volume" ? "数量を上げる" :
-        selectedRoute==="auto" ? "経理プロセスを自動化する" :
+        // ★ 反映：経理→業務（コピー文言）
+        selectedRoute==="auto" ? "業務プロセスを自動化する" :
         "（未選択）";
 
       let routeDetail = "";
