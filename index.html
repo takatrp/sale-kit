@@ -1,4 +1,13 @@
 <!doctype html>
+<!-- internal version: r4
+  changes:
+  - reset button added to top (and kept bottom)
+  - removed sticky header (title no longer fixed on scroll)
+  - removed specific help sentences (cmr / annualSales)
+  - removed monthlySales input; monthly sales is derived from annualSales/12 wherever needed
+  - bottom action area simplified to buttons only
+  - added credit + version footer
+-->
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
@@ -32,21 +41,20 @@
     }
     a{color:inherit}
 
+    /* header (NOT sticky) */
     .top{
-      position:sticky; top:0; z-index:10;
-      background:rgba(246,248,251,.88);
-      backdrop-filter:saturate(1.2) blur(10px);
+      position:static;
+      background:var(--bg);
       border-bottom:1px solid var(--line);
     }
     .topin{
       max-width:980px; margin:0 auto;
       padding:10px 14px;
-      display:flex; align-items:center; justify-content:flex-start; gap:10px;
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
     }
     .brand{
       display:flex; align-items:center; gap:12px; min-width:0;
     }
-    /* ★ アイコン（ロゴ）を少し大きく */
     .logo{
       width:44px; height:44px;
       border-radius:14px;
@@ -57,7 +65,6 @@
       flex:0 0 auto;
     }
     .btxt{min-width:0}
-
     .bttl{
       font-weight:900;
       font-size:20px;
@@ -88,7 +95,7 @@
     .btn.primary{background:var(--soft); border-color:rgba(87,136,153,.35)}
     .btn.ghost{background:transparent}
 
-    .wrap{max-width:980px; margin:0 auto; padding:16px 14px 42px}
+    .wrap{max-width:980px; margin:0 auto; padding:16px 14px 34px}
     .grid{display:grid; gap:12px}
     .card{
       background:var(--card);
@@ -138,7 +145,7 @@
       outline:none;
     }
 
-    /* ★ プレースホルダーを薄く */
+    /* placeholder (lighter) */
     input::placeholder, textarea::placeholder{ color: rgba(86,112,122,.45); }
     input::-webkit-input-placeholder, textarea::-webkit-input-placeholder{ color: rgba(86,112,122,.45); }
     input::-moz-placeholder, textarea::-moz-placeholder{ color: rgba(86,112,122,.45); opacity:1; }
@@ -246,11 +253,17 @@
     .k2 .v{font-size:16px; font-weight:900; margin-top:6px}
     .mutedLine{margin-top:8px; color:var(--muted); font-size:12px}
 
-    .actionsHead{
-      display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
+    /* bottom action buttons only */
+    .actionOnly{
+      display:flex; gap:8px; flex-wrap:wrap;
+      justify-content:flex-end;
     }
-    .actionsHead .p{margin:0}
+    @media (max-width:760px){
+      .actionOnly{justify-content:stretch}
+      .actionOnly .btn{flex:1}
+    }
 
+    /* modal */
     .modalBack{
       position:fixed; inset:0; z-index:100;
       background:rgba(10,20,25,.35);
@@ -284,15 +297,33 @@
       background:#fff;
     }
 
+    /* footer credit */
+    .footer{
+      max-width:980px;
+      margin:14px auto 0;
+      padding:10px 14px 2px;
+      color:rgba(86,112,122,.75);
+      font-size:12px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .footer .ver{
+      font-weight:900;
+      color:rgba(86,112,122,.85);
+    }
+
     @media print{
       body{background:#fff}
-      .top{position:static; background:#fff; backdrop-filter:none}
       .btns, .modalBack{display:none !important}
       .wrap{padding:0}
       .card{box-shadow:none; border:1px solid #ddd}
       .k, .k2{background:#fff}
       a{color:#000; text-decoration:none}
       textarea{min-height:140px}
+      .footer{border-top:0; padding:0; margin-top:10px}
     }
   </style>
 </head>
@@ -306,6 +337,11 @@
           <div class="bttl">打ち手検討ツール</div>
           <div class="bsub">支出額を売上換算 → 打ち手を検討</div>
         </div>
+      </div>
+
+      <!-- Top reset button -->
+      <div class="btns">
+        <button class="btn primary" id="btnResetTop">リセット</button>
       </div>
     </div>
   </div>
@@ -321,7 +357,7 @@
         <div class="steps">
           <div class="chip"><b>入力</b>：今回検討する支出額</div>
           <div class="chip"><b>入力</b>：限界利益率</div>
-          <div class="chip"><b>任意</b>：年商 / 月商</div>
+          <div class="chip"><b>任意</b>：年商</div>
         </div>
 
         <div class="row" style="margin-top:12px;">
@@ -334,7 +370,6 @@
           <div>
             <label for="cmr">限界利益率（%）</label>
             <input id="cmr" inputmode="decimal" pattern="[0-9.]*" placeholder="例：30" data-format="decimal" />
-            <div class="help">わからなければ、下の「参考：産業ごとの全国平均」から当てて目安を出せます。</div>
 
             <div class="avgWrap">
               <div class="avgTitle">参考：産業ごとの全国平均</div>
@@ -347,12 +382,11 @@
           <div>
             <label for="annualSales">年商（任意 / 円）</label>
             <input id="annualSales" inputmode="numeric" pattern="[0-9]*" placeholder="例：120,000,000" data-format="int" />
-            <div class="help">入力すると「年商の何%か」を表示します。</div>
           </div>
           <div>
-            <label for="monthlySales">月商（任意 / 円）</label>
-            <input id="monthlySales" inputmode="numeric" pattern="[0-9]*" placeholder="例：10,000,000" data-format="int" />
-            <div class="help">単価ルートの「必要な上乗せ率（目安）」の計算に使います。</div>
+            <label>月商（自動 / 年商÷12）</label>
+            <input id="monthlySalesAuto" readonly placeholder="—" />
+            <div class="help">年商を入力すると自動計算されます。</div>
           </div>
         </div>
 
@@ -473,21 +507,21 @@
         </div>
       </section>
 
-      <!-- 最下部：操作ボタン -->
+      <!-- Bottom: buttons only -->
       <section class="card">
-        <div class="actionsHead">
-          <div>
-            <h2 style="margin:0;">操作</h2>
-            <div class="p">必要に応じて、要点をコピーしたり、印刷/PDFでお渡しできます。</div>
-          </div>
-          <div class="btns">
-            <button class="btn ghost" id="btnCopy">要点をコピー</button>
-            <button class="btn" id="btnPrint">印刷 / PDF</button>
-            <button class="btn primary" id="btnReset">リセット</button>
-          </div>
+        <div class="actionOnly">
+          <button class="btn ghost" id="btnCopy">要点をコピー</button>
+          <button class="btn" id="btnPrint">印刷 / PDF</button>
+          <button class="btn primary" id="btnReset">リセット</button>
         </div>
       </section>
 
+    </div>
+
+    <!-- credit + version -->
+    <div class="footer">
+      <div>© 税理士法人松本会計事務所</div>
+      <div class="ver">ver r4</div>
     </div>
   </div>
 
@@ -696,7 +730,7 @@
     function applyFromQuery(){
       const sp = new URLSearchParams(location.search);
       const hasAny =
-        sp.has("spendMonthly") || sp.has("cmr") || sp.has("annualSales") || sp.has("monthlySales") ||
+        sp.has("spendMonthly") || sp.has("cmr") || sp.has("annualSales") ||
         sp.has("route") ||
         sp.has("volumeUnitPrice") || sp.has("volumeConvRate") || sp.has("volumeDays") || sp.has("volumeLabelKey") ||
         sp.has("hourCost");
@@ -706,7 +740,6 @@
       if(sp.get("spendMonthly")!=null) $("spendMonthly").value = String(sp.get("spendMonthly"));
       if(sp.get("cmr")!=null) $("cmr").value = String(sp.get("cmr"));
       if(sp.get("annualSales")!=null) $("annualSales").value = String(sp.get("annualSales"));
-      if(sp.get("monthlySales")!=null) $("monthlySales").value = String(sp.get("monthlySales"));
 
       const r = sp.get("route");
       if(r==="price" || r==="volume" || r==="auto"){
@@ -767,7 +800,6 @@
         spendMonthly: $("spendMonthly").value,
         cmr: $("cmr").value,
         annualSales: $("annualSales").value,
-        monthlySales: $("monthlySales").value,
         selectedRoute,
         startDate: $("startDate").value,
         targetScope: $("targetScope").value,
@@ -787,7 +819,6 @@
       if(v.spendMonthly!=null) $("spendMonthly").value = v.spendMonthly;
       if(v.cmr!=null) $("cmr").value = v.cmr;
       if(v.annualSales!=null) $("annualSales").value = v.annualSales;
-      if(v.monthlySales!=null) $("monthlySales").value = v.monthlySales;
 
       if(v.activeAvgKey) setActiveAvg(v.activeAvgKey);
 
@@ -823,14 +854,19 @@
       const spendMonthly = num($("spendMonthly").value);
       const cmr = num($("cmr").value);
       const annualSales = num($("annualSales").value);
-      const monthlySales = num($("monthlySales").value);
+
+      const monthlySalesAuto = (annualSales>0) ? (annualSales/12) : 0;
 
       const salesEqM = (cmr>0) ? spendMonthly / (cmr/100) : NaN;
       const salesEqY = Number.isFinite(salesEqM) ? salesEqM * 12 : NaN;
-      const shareY = (annualSales>0 && Number.isFinite(salesEqY)) ? (salesEqY/annualSales*100) : NaN;
-      const needPricePct = (monthlySales>0 && Number.isFinite(salesEqM)) ? (salesEqM/monthlySales*100) : NaN;
 
-      return { spendMonthly, cmr, annualSales, monthlySales, salesEqM, salesEqY, shareY, needPricePct };
+      const shareY = (annualSales>0 && Number.isFinite(salesEqY)) ? (salesEqY/annualSales*100) : NaN;
+
+      const needPricePct = (monthlySalesAuto>0 && Number.isFinite(salesEqM))
+        ? (salesEqM/monthlySalesAuto*100)
+        : NaN;
+
+      return { spendMonthly, cmr, annualSales, monthlySalesAuto, salesEqM, salesEqY, shareY, needPricePct };
     }
 
     function volLabels(){
@@ -888,11 +924,11 @@
 
       if(selectedRoute === "price"){
         $("detailTitle").textContent = "単価を上げる（深掘り）";
-        $("detailSub").textContent   = "月商に対して、どの程度の上乗せが必要かを目安で確認します。";
+        $("detailSub").textContent   = "年商から月商（年商÷12）を自動計算し、必要な上乗せ率の目安を確認します。";
 
         inputA.innerHTML = `
-          <label>月商（円 / 任意）</label>
-          <div class="help">※上で入力済みならそのまま使います。未入力なら、概算でも入力してください。</div>
+          <label>前提</label>
+          <div class="help">※年商を入力している場合、月商は自動計算されます（年商÷12）。</div>
         `;
         inputB.innerHTML = `
           <label>ポイント</label>
@@ -905,7 +941,7 @@
             <div class="v" id="kpiSalesEqM">—</div>
           </div>
           <div class="k2">
-            <div class="t">必要な上乗せ率（%）※月商入力時</div>
+            <div class="t">必要な上乗せ率（%）※年商入力時</div>
             <div class="v" id="kpiNeedPricePct">—</div>
           </div>
         `;
@@ -1132,6 +1168,8 @@
     function render(){
       const c = compute();
 
+      $("monthlySalesAuto").value = (c.annualSales>0) ? yen(c.monthlySalesAuto) : "";
+
       $("salesEqM").textContent = Number.isFinite(c.salesEqM) ? yen(c.salesEqM) : "—";
       $("salesEqY").textContent = Number.isFinite(c.salesEqY) ? yen(c.salesEqY) : "—";
       $("shareY").textContent = Number.isFinite(c.shareY) ? pct1(c.shareY) : "—";
@@ -1171,6 +1209,16 @@
       currentUrl = "";
     }
 
+    function doReset(){
+      ["spendMonthly","cmr","annualSales","startDate","targetScope","checkKpi","freeMemo"].forEach(id=>$(id).value="");
+      $("monthlySalesAuto").value = "";
+      setActiveAvg("");
+      volumeLabelKey = "generic";
+      setRoute("");
+      localStorage.removeItem(KEY);
+      render();
+    }
+
     buildAvgChips();
 
     const fromQuery = applyFromQuery();
@@ -1183,7 +1231,7 @@
     document.querySelectorAll('input[data-format="int"]').forEach(formatIntInput);
     document.querySelectorAll('input[data-format="decimal"]').forEach(formatDecimalInput);
 
-    ["spendMonthly","cmr","annualSales","monthlySales","startDate","targetScope","checkKpi","freeMemo"].forEach(id=>{
+    ["spendMonthly","cmr","annualSales","startDate","targetScope","checkKpi","freeMemo"].forEach(id=>{
       $(id).addEventListener("input", render);
     });
 
@@ -1234,7 +1282,7 @@
 
       let routeDetail = "";
       if(selectedRoute==="price"){
-        routeDetail = `・必要な上乗せ率（%）※月商入力時：${Number.isFinite(c.needPricePct)?pct1(c.needPricePct):"—"}`;
+        routeDetail = `・必要な上乗せ率（%）※年商入力時：${Number.isFinite(c.needPricePct)?pct1(c.needPricePct):"—"}`;
       }
       if(selectedRoute==="volume"){
         const L = volLabels();
@@ -1263,6 +1311,7 @@
 ・限界利益率：${$("cmr").value ? ($("cmr").value + "%") : "—"}
 ・売上換算額：${Number.isFinite(c.salesEqM)?yen(c.salesEqM):"—"}/月（年 ${Number.isFinite(c.salesEqY)?yen(c.salesEqY):"—"}）
 ・年商比：${Number.isFinite(c.shareY)?pct1(c.shareY):"—"}
+・月商（年商÷12）：${c.annualSales>0 ? yen(c.monthlySalesAuto) : "—"}
 
 ■2. 打ち手
 ・選択：${routeLabel}
@@ -1284,14 +1333,8 @@ ${routeDetail ? routeDetail : ""}
       }
     });
 
-    $("btnReset").addEventListener("click", ()=>{
-      ["spendMonthly","cmr","annualSales","monthlySales","startDate","targetScope","checkKpi","freeMemo"].forEach(id=>$(id).value="");
-      setActiveAvg("");
-      volumeLabelKey = "generic";
-      setRoute("");
-      localStorage.removeItem(KEY);
-      render();
-    });
+    $("btnReset").addEventListener("click", doReset);
+    $("btnResetTop").addEventListener("click", doReset);
 
     render();
   </script>
