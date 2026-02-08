@@ -1,18 +1,8 @@
 <!doctype html>
-<!-- internal version: r6
-  changes:
-  - 【UX#1】単発の回収期間：サイレントデフォルト排除（未入力は未入力として扱う）＋プリセットチップ＋自由入力
-  - 【UX#2】トグル系ボタン：aria-pressed付与／focus-visible強化
-  - 【UX#3】入力妥当性フィードバック：範囲外・不正値のみエラーメッセージ（未入力はガイド表示で“壊れ感”軽減）
-  - 【UX#4】モーダル：フォーカストラップ＋開閉時のフォーカス復帰＋スクロール抑止
-  - 【UX#5】「3つの打ち手に戻る」：目立つスタイル＋detailHeadをsticky化
-  - 【UX#6】情報量の多い補足：detailsで折りたたみ（初期は閉じる）
-
-  - 「支出の種類」→「支出の頻度」
-  - 支出タイプチップ内の「タイプ」削除（チップは残す）
-  - 産業ごとの全国平均チップ削除
-  - 「数量を上げる」の用語チップ内「用語」削除
-  - 自動化：時間単価の計算ツール（同一画面/別タブ）を追加
+<!-- internal version: r7
+  changes from r6:
+  - 【重要】リセットにconfirm追加（誤タップによる全消去を防止）
+  - 【Nice to have】Step2「深掘り」選択時、詳細エリアへ自動スクロール（stickyヘッダ余白考慮）
 -->
 <html lang="ja">
 <head>
@@ -89,7 +79,6 @@
     .btn.primary{background:var(--soft); border-color:rgba(87,136,153,.35)}
     .btn.ghost{background:transparent}
 
-    /* UX#5: 戻るボタンを目立たせる */
     .btn.back{
       background:rgba(87,136,153,.14);
       border-color:rgba(87,136,153,.60);
@@ -102,7 +91,6 @@
       border-color:rgba(87,136,153,.75);
     }
 
-    /* UX#2: focus-visible 強化（ボタン系） */
     .btn:focus-visible,
     .avgBtn:focus-visible,
     summary:focus-visible{
@@ -148,7 +136,6 @@
       outline:none;
     }
 
-    /* placeholder (lighter) */
     input::placeholder, textarea::placeholder{ color: rgba(86,112,122,.45); }
     input::-webkit-input-placeholder, textarea::-webkit-input-placeholder{ color: rgba(86,112,122,.45); }
     input::-moz-placeholder, textarea::-moz-placeholder{ color: rgba(86,112,122,.45); opacity:1; }
@@ -161,7 +148,6 @@
     }
     .help{font-size:12px; color:var(--muted); margin-top:6px}
 
-    /* UX#3: 妥当性フィードバック（範囲外/不正値のみ） */
     .err{
       margin-top:8px;
       padding:8px 10px;
@@ -250,7 +236,6 @@
       background:#fff;
     }
 
-    /* UX#5: detailヘッダをsticky化 */
     .detailHead{
       display:flex;
       align-items:flex-start;
@@ -283,7 +268,6 @@
     .k2 .v.small{font-size:13px; font-weight:900; color:var(--muted)}
     .mutedLine{margin-top:8px; color:var(--muted); font-size:12px}
 
-    /* UX#6: 折りたたみ（details） */
     details.fold{
       margin-top:10px;
       border:1px solid rgba(87,136,153,.22);
@@ -349,7 +333,6 @@
       background:#fff;
     }
 
-    /* 操作ボタンカード（参照コード準拠） */
     .card-actions{padding-top:10px;}
     .action-row{display:flex; gap:10px; margin:6px 0; flex-wrap:nowrap;}
     .action-row .btn{
@@ -362,7 +345,6 @@
       .action-row .btn{flex:1 1 100%;}
     }
 
-    /* フッター（参照コード準拠） */
     footer.mk-mini{
       margin:18px 4px 10px;
       text-align:center;
@@ -419,7 +401,6 @@
         <h2>1. 売上換算</h2>
         <div class="p">支出額が「売上に直すとどれくらいか」を、限界利益率で整理します（概算）。</div>
 
-        <!-- 支出タイプ -->
         <div class="avgWrap">
           <div class="avgTitle">支出の頻度</div>
           <div class="avgGrid" id="spendModeGrid">
@@ -430,7 +411,6 @@
         </div>
 
         <div class="row" style="margin-top:12px;">
-          <!-- 支出入力（切替） -->
           <div>
             <div id="boxSpendMonthly">
               <label for="spendMonthly">支出額（円 / 月）</label>
@@ -472,7 +452,6 @@
             </div>
           </div>
 
-          <!-- CMR -->
           <div>
             <label for="cmr">限界利益率（%）</label>
             <input id="cmr" inputmode="decimal" pattern="[0-9.]*" placeholder="例：30" data-format="decimal" />
@@ -481,7 +460,6 @@
           </div>
         </div>
 
-        <!-- 年商 -->
         <div class="row" style="margin-top:10px;">
           <div>
             <label for="annualSales">年商（任意 / 円）</label>
@@ -493,7 +471,6 @@
           </div>
         </div>
 
-        <!-- KPI（タイトルはJSで切替） -->
         <div class="kpi">
           <div class="k">
             <div class="t" id="kpiT1">—</div>
@@ -519,7 +496,6 @@
         <h2>2. 打ち手を検討</h2>
         <div class="p">売上換算額を「どうやって作るか」を3つの方向から検討します。</div>
 
-        <!-- UX#6: 補足は折りたたみ -->
         <details class="fold" id="foldTalk">
           <summary>補足（考え方）</summary>
           <div class="inside">
@@ -615,7 +591,6 @@
         </div>
       </section>
 
-      <!-- 操作ボタンカード（参照コード準拠） -->
       <section class="card card-actions" aria-label="操作">
         <div class="action-row">
           <button id="btnCopy" class="btn" type="button">要点をコピー</button>
@@ -624,18 +599,16 @@
         </div>
       </section>
 
-      <!-- フッター（参照コード準拠） -->
       <footer class="mk-mini">
         © <span id="cpy-year">2025</span>
         <a href="https://www.matsumoto-kaikei.or.jp/" target="_blank" rel="noopener license">税理士法人松本会計事務所</a> ｜ 
         <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="license noopener">CC BY-NC-SA 4.0</a> ｜ 
         <a href="/tool-portal/terms.html" target="_blank" rel="noopener">利用条件</a> ｜ 
-        <span id="build-rev">r6</span>（<span id="last-updated-date"></span>）
+        <span id="build-rev">r7</span>（<span id="last-updated-date"></span>）
       </footer>
 
     </div>
 
-    <!-- modal -->
     <div class="modalBack" id="modalBack" role="dialog" aria-modal="true" aria-label="ツール表示">
       <div class="modal" role="document" aria-label="ツール本体">
         <div class="modalTop">
@@ -741,7 +714,6 @@
     const KEY = "mk_action_tool_v4";
     const $ = (id)=>document.getElementById(id);
 
-    // footer: year & last updated date（参照コード準拠）
     (function(){
       const yEl = document.getElementById("cpy-year");
       const dEl = document.getElementById("last-updated-date");
@@ -858,13 +830,12 @@
     let selectedRoute = "";
     let detailBuiltFor = "";
     let volumeLabelKey = "generic";
-    let spendMode = "monthly"; // monthly | yearly | once
+    let spendMode = "monthly";
 
     function volLabels(){
       return VOLUME_LABEL_SETS[volumeLabelKey] || VOLUME_LABEL_SETS.generic;
     }
 
-    // UX#2: aria-pressedでトグル状態を表現
     function setPressed(el, pressed){
       if(!el) return;
       el.setAttribute("aria-pressed", pressed ? "true" : "false");
@@ -873,7 +844,6 @@
     function setSpendMode(mode){
       spendMode = mode;
 
-      // active button + aria
       const ids = ["modeMonthly","modeYearly","modeOnce"];
       ids.forEach(id=>{
         const b = $(id);
@@ -885,12 +855,10 @@
       if(mode==="yearly"){  $("modeYearly").classList.add("active");  setPressed($("modeYearly"), true); }
       if(mode==="once"){    $("modeOnce").classList.add("active");    setPressed($("modeOnce"), true); }
 
-      // show/hide boxes
       $("boxSpendMonthly").style.display = (mode==="monthly") ? "" : "none";
       $("boxSpendYearly").style.display  = (mode==="yearly")  ? "" : "none";
       $("boxSpendOnce").style.display    = (mode==="once")    ? "" : "none";
 
-      // UX#1: 単発に切り替えたとき、回収期間が空なら「12」を見える形でセット（サイレント排除）
       if(mode==="once"){
         const raw = String($("recoveryMonths").value ?? "").trim();
         if(raw === ""){
@@ -912,7 +880,6 @@
       return { valid, cmrPct, cmr: valid ? cmrPct/100 : NaN, raw };
     }
 
-    // UX#1: 回収期間は「未入力/不正」を明確に扱う
     function parseRecoveryMonths(){
       const raw = String($("recoveryMonths").value ?? "").trim();
       if(raw === "") return { valid:false, months:NaN, raw, reason:"未入力" };
@@ -933,7 +900,6 @@
       const annualSales = num($("annualSales").value);
       const monthlySalesAuto = (annualSales>0) ? (annualSales/12) : 0;
 
-      // 月あたりの支出（単発は回収期間で月割り）
       let spendPerMonth = NaN;
       let recoveryInfo = { valid:true, months:NaN, raw:"", reason:"" };
 
@@ -950,27 +916,22 @@
         }
       }
 
-      // 売上換算：月あたり回収目標（＝以降の打ち手に使う基準）
       const salesEqTargetM = (cmrInfo.valid && Number.isFinite(spendPerMonth)) ? (spendPerMonth / cmrInfo.cmr) : NaN;
 
-      // 年換算（固定費系のみ意味が明確）
       const salesEqAnnual = (cmrInfo.valid)
         ? (spendMode==="monthly" ? (Number.isFinite(salesEqTargetM)? salesEqTargetM*12 : NaN)
           : spendMode==="yearly" ? (spendY>0 ? (spendY / cmrInfo.cmr) : NaN)
           : NaN)
         : NaN;
 
-      // 単発：総額換算
       const salesEqTotal = (cmrInfo.valid && spendMode==="once" && spendO>0) ? (spendO / cmrInfo.cmr) : NaN;
 
-      // 年商比：固定費→年換算、単発→総額で比較
       const shareY = (annualSales>0)
         ? (spendMode==="once"
             ? (Number.isFinite(salesEqTotal) ? (salesEqTotal/annualSales*100) : NaN)
             : (Number.isFinite(salesEqAnnual) ? (salesEqAnnual/annualSales*100) : NaN))
         : NaN;
 
-      // 単価UP用（年商入力時の月商比）
       const needPricePct = (monthlySalesAuto>0 && Number.isFinite(salesEqTargetM))
         ? (salesEqTargetM/monthlySalesAuto*100)
         : NaN;
@@ -986,7 +947,6 @@
       };
     }
 
-    // UX#1: 回収期間チップ
     function buildRecoveryChips(){
       const grid = $("recoveryChipGrid");
       if(!grid) return;
@@ -1031,7 +991,7 @@
         b.type="button";
         b.className="avgBtn";
         b.dataset.vkey = item.key;
-        b.textContent = item.label; // 「用語」削除
+        b.textContent = item.label;
         b.classList.toggle("active", item.key===volumeLabelKey);
         setPressed(b, item.key===volumeLabelKey);
 
@@ -1061,14 +1021,12 @@
     }
 
     function validateStep1Errors(c){
-      // CMR
       if(c.cmrInfo.raw !== "" && !c.cmrInfo.valid){
         showErr("cmrErr", "限界利益率は 0〜100 の範囲で入力してください。");
       }else{
         showErr("cmrErr", "");
       }
 
-      // 支出（不正値のみ）
       showErr("spendMonthlyErr", "");
       showErr("spendYearlyErr", "");
       showErr("spendOnceErr", "");
@@ -1084,7 +1042,6 @@
         const raw = String($("spendOnce").value ?? "").trim();
         if(raw !== "" && c.spendO <= 0) showErr("spendOnceErr", "支出額は 0 より大きい数値で入力してください。");
 
-        // 回収期間（未入力は赤にしない。不正/範囲外だけ表示）
         if(c.recoveryInfo.raw !== "" && !c.recoveryInfo.valid){
           showErr("recoveryErr", c.recoveryInfo.reason || "回収期間を確認してください。");
         }else{
@@ -1270,7 +1227,6 @@
           });
 
           $("hourCostInput").addEventListener("input", ()=>{
-            // UX#3: 不正値のみエラー
             const raw = String($("hourCostInput").value ?? "").trim();
             const v = num(raw);
             if(raw !== "" && v <= 0) showErr("hourCostErr", "時間単価は 0 より大きい数値で入力してください。");
@@ -1278,7 +1234,6 @@
           });
         }
 
-        // 時間単価計算ツール：同一画面/別タブ
         const b1 = $("btnTimeCostModal");
         const b2 = $("btnTimeCostNewTab");
         if(b1){
@@ -1329,7 +1284,6 @@
         const daysRaw = $("volumeDays") ? String($("volumeDays").value ?? "").trim() : "";
         const days = $("volumeDays") ? num($("volumeDays").value) : 0;
 
-        // UX#3: 不正値のみエラー
         if($("volumeUnitPriceErr")){
           if(unitRaw !== "" && unitPrice <= 0) showErr("volumeUnitPriceErr", "単価は 0 より大きい数値で入力してください。");
           else showErr("volumeUnitPriceErr", "");
@@ -1407,6 +1361,16 @@
       $("routeChooser").style.display = "none";
       $("routeDetail").style.display = "block";
 
+      // ▼ 追加: スマホなどで詳細が開いたことに気づかせる（stickyヘッダー分の余白考慮）
+      if(route){
+        setTimeout(() => {
+          const box = $("routeDetail");
+          if(!box) return;
+          const y = box.getBoundingClientRect().top + window.scrollY - 70;
+          window.scrollTo({ top: y, behavior: "smooth" });
+        }, 50);
+      }
+
       buildRouteDetailUI();
       updateRouteDetailKPIs();
       persist();
@@ -1416,10 +1380,8 @@
       const c = compute();
       validateStep1Errors(c);
 
-      // monthly sales
       $("monthlySalesAuto").value = (c.annualSales>0) ? yen(c.monthlySalesAuto) : "";
 
-      // once: monthly-equivalent spend
       if(spendMode==="once"){
         $("spendMonthlyEqAuto").value = Number.isFinite(c.spendPerMonth) ? yen(c.spendPerMonth) : "—";
         syncRecoveryChipsFromInput();
@@ -1427,7 +1389,6 @@
         $("spendMonthlyEqAuto").value = "";
       }
 
-      // KPI titles + values
       if(spendMode==="monthly" || spendMode==="yearly"){
         $("kpiT1").textContent = "売上換算額（円 / 月）";
         $("kpiT2").textContent = "売上換算額（円 / 年）";
@@ -1465,18 +1426,12 @@
           $("salesEqY").textContent = yen(c.salesEqTargetM);
           $("salesEqY").classList.remove("small");
         }else{
-          // 回収期間未入力が原因の場合は明示
           const rmRaw = String($("recoveryMonths").value ?? "").trim();
-          if(rmRaw === ""){
-            $("salesEqY").textContent = "回収期間を入力";
-          }else{
-            $("salesEqY").textContent = "支出額と限界利益率を入力";
-          }
+          $("salesEqY").textContent = (rmRaw === "") ? "回収期間を入力" : "支出額と限界利益率を入力";
           $("salesEqY").classList.add("small");
         }
       }
 
-      // 年商比は「年商を入れると表示」で“壊れ感”を軽減（UX#3）
       if(Number.isFinite(c.shareY)){
         $("shareY").textContent = pct1(c.shareY);
         $("shareY").classList.remove("small");
@@ -1489,7 +1444,6 @@
         $("shareY").classList.add("small");
       }
 
-      // step 3 label
       $("selectedRouteLabel").value =
         selectedRoute==="price" ? "単価を上げる" :
         selectedRoute==="volume" ? "数量を上げる" :
@@ -1504,7 +1458,6 @@
       persist();
     }
 
-    // modal（UX#4: フォーカストラップ＋復帰）
     let currentUrl = "";
     let lastFocusEl = null;
     let modalOpen = false;
@@ -1535,7 +1488,6 @@
       lastFocusEl = document.activeElement;
       currentUrl = url;
 
-      // title with span 유지
       $("modalTitle").innerHTML = `${title} <span>（同一画面）</span>`;
 
       $("toolFrame").src = url;
@@ -1544,7 +1496,6 @@
 
       modalOpen = true;
 
-      // 初期フォーカス
       setTimeout(()=>{
         try{ $("btnClose").focus(); }catch(e){}
       }, 0);
@@ -1556,14 +1507,12 @@
       document.body.style.overflow = "";
       modalOpen = false;
 
-      // フォーカス復帰
       if(lastFocusEl && typeof lastFocusEl.focus === "function"){
         try{ lastFocusEl.focus(); }catch(e){}
       }
       lastFocusEl = null;
     }
 
-    // フォーカストラップ
     document.addEventListener("keydown", (e)=>{
       if(!modalOpen) return;
       if(e.key === "Escape"){
@@ -1657,7 +1606,12 @@
       }
     }
 
+    // ★ 重要修正：誤タップ対策（confirm）
     function doReset(){
+      if(!confirm("入力内容をすべてリセットしますか？\n（この操作は取り消せません）")){
+        return;
+      }
+
       spendMode = "monthly";
       ["spendMonthly","spendYearly","spendOnce","recoveryMonths","cmr","annualSales","startDate","targetScope","checkKpi","freeMemo"].forEach(id=>$(id).value="");
       $("monthlySalesAuto").value = "";
@@ -1676,28 +1630,22 @@
       render();
     }
 
-    // init
     bindLiveFormatting(document);
     buildRecoveryChips();
 
-    // spend mode handlers
     $("modeMonthly").addEventListener("click", ()=>setSpendMode("monthly"));
     $("modeYearly").addEventListener("click",  ()=>setSpendMode("yearly"));
     $("modeOnce").addEventListener("click",    ()=>setSpendMode("once"));
 
-    // 初期：monthly
     setSpendMode("monthly");
 
-    // restore from localStorage
     const st = load();
     restore(st);
 
-    // live formatting ensure after restore
     bindLiveFormatting(document);
     document.querySelectorAll('input[data-format="int"]').forEach(formatIntInput);
     document.querySelectorAll('input[data-format="decimal"]').forEach(formatDecimalInput);
 
-    // change events
     ["spendMonthly","spendYearly","spendOnce","recoveryMonths","cmr","annualSales","startDate","targetScope","checkKpi","freeMemo"].forEach(id=>{
       $(id).addEventListener("input", ()=>{
         if(id==="recoveryMonths") syncRecoveryChipsFromInput();
@@ -1705,7 +1653,6 @@
       });
     });
 
-    // route pick
     document.querySelectorAll("[data-pick]").forEach(btn=>{
       btn.addEventListener("click", ()=>{
         const r = btn.getAttribute("data-pick");
@@ -1715,7 +1662,6 @@
     });
     $("btnBack").addEventListener("click", ()=>{ setRoute(""); render(); });
 
-    // modal buttons
     $("btnOpenTool").addEventListener("click", ()=>{
       const url = getToolUrl();
       if(!url){ alert("ツールURLが未設定です。"); return; }
@@ -1730,10 +1676,8 @@
     $("modalBack").addEventListener("click", (e)=>{ if(e.target === $("modalBack")) closeModal(); });
     $("btnOpenNewTab2").addEventListener("click", ()=>{ if(currentUrl) window.open(currentUrl, "_blank", "noopener,noreferrer"); });
 
-    // print
     $("btnPrint").addEventListener("click", ()=>window.print());
 
-    // copy
     $("btnCopy").addEventListener("click", async ()=>{
       const c = compute();
       const routeLabel =
@@ -1814,11 +1758,9 @@ ${routeDetail ? routeDetail : ""}
       }
     });
 
-    // reset
     $("btnReset").addEventListener("click", doReset);
     $("btnResetTop").addEventListener("click", doReset);
 
-    // initial render
     render();
   </script>
 </body>
