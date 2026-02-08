@@ -1,10 +1,18 @@
 <!doctype html>
-<!-- internal version: r5
+<!-- internal version: r6
   changes:
-  - 支出タイプ切替（毎月 / 年額 / 単発）
-  - 単発は回収期間（月）で月割りして「月あたり回収目標」を算出
-  - KPI表示を支出タイプに応じて切替（総額/年額/月額）
-  - 以降の打ち手計算は「月あたり回収目標（売上換算）」を基準に統一
+  - 【UX#1】単発の回収期間：サイレントデフォルト排除（未入力は未入力として扱う）＋プリセットチップ＋自由入力
+  - 【UX#2】トグル系ボタン：aria-pressed付与／focus-visible強化
+  - 【UX#3】入力妥当性フィードバック：範囲外・不正値のみエラーメッセージ（未入力はガイド表示で“壊れ感”軽減）
+  - 【UX#4】モーダル：フォーカストラップ＋開閉時のフォーカス復帰＋スクロール抑止
+  - 【UX#5】「3つの打ち手に戻る」：目立つスタイル＋detailHeadをsticky化
+  - 【UX#6】情報量の多い補足：detailsで折りたたみ（初期は閉じる）
+
+  - 「支出の種類」→「支出の頻度」
+  - 支出タイプチップ内の「タイプ」削除（チップは残す）
+  - 産業ごとの全国平均チップ削除
+  - 「数量を上げる」の用語チップ内「用語」削除
+  - 自動化：時間単価の計算ツール（同一画面/別タブ）を追加
 -->
 <html lang="ja">
 <head>
@@ -28,6 +36,10 @@
       --soft:rgba(87,136,153,.10);
       --shadow:0 10px 28px rgba(20,40,50,.10);
       --r:16px;
+
+      --danger:#b42318;
+      --dangerSoft:rgba(180,35,24,.08);
+      --focus:rgba(87,136,153,.45);
     }
     *{box-sizing:border-box}
     body{
@@ -70,12 +82,34 @@
       font-weight:800;
       cursor:pointer;
       box-shadow:0 2px 0 rgba(0,0,0,.02);
-      transition:.12s transform,.12s box-shadow,.12s border-color;
+      transition:.12s transform,.12s box-shadow,.12s border-color,.12s background;
       user-select:none;
     }
     .btn:hover{transform:translateY(-1px); box-shadow:0 10px 18px rgba(20,40,50,.08); border-color:rgba(87,136,153,.35)}
     .btn.primary{background:var(--soft); border-color:rgba(87,136,153,.35)}
     .btn.ghost{background:transparent}
+
+    /* UX#5: 戻るボタンを目立たせる */
+    .btn.back{
+      background:rgba(87,136,153,.14);
+      border-color:rgba(87,136,153,.60);
+      color:var(--text);
+      font-weight:900;
+      padding:10px 14px;
+    }
+    .btn.back:hover{
+      background:rgba(87,136,153,.20);
+      border-color:rgba(87,136,153,.75);
+    }
+
+    /* UX#2: focus-visible 強化（ボタン系） */
+    .btn:focus-visible,
+    .avgBtn:focus-visible,
+    summary:focus-visible{
+      outline:3px solid var(--focus);
+      outline-offset:2px;
+      border-radius:12px;
+    }
 
     .wrap{max-width:980px; margin:0 auto; padding:16px 14px 34px}
     .grid{display:grid; gap:12px}
@@ -98,19 +132,6 @@
       color:var(--muted);
       font-size:12px;
     }
-
-    .steps{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px}
-    .chip{
-      display:inline-flex; align-items:center; gap:8px;
-      padding:7px 10px;
-      border-radius:999px;
-      border:1px solid rgba(87,136,153,.22);
-      background:rgba(87,136,153,.06);
-      font-size:12px;
-      color:var(--muted);
-      font-weight:800;
-    }
-    .chip b{color:var(--text)}
 
     .row{display:grid; grid-template-columns:1fr 1fr; gap:10px}
     @media (max-width:760px){ .row{grid-template-columns:1fr} }
@@ -140,6 +161,20 @@
     }
     .help{font-size:12px; color:var(--muted); margin-top:6px}
 
+    /* UX#3: 妥当性フィードバック（範囲外/不正値のみ） */
+    .err{
+      margin-top:8px;
+      padding:8px 10px;
+      border-radius:12px;
+      border:1px solid rgba(180,35,24,.35);
+      background:var(--dangerSoft);
+      color:var(--danger);
+      font-size:12px;
+      font-weight:900;
+      display:none;
+    }
+    .err.show{display:block;}
+
     .kpi{display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-top:10px}
     @media (max-width:760px){ .kpi{grid-template-columns:1fr} }
     .k{
@@ -150,6 +185,7 @@
     }
     .k .t{font-size:12px; color:var(--muted); font-weight:800}
     .k .v{font-size:18px; font-weight:900; margin-top:6px}
+    .k .v.small{font-size:14px; font-weight:900; color:var(--muted)}
 
     .note{
       border:1px solid rgba(87,136,153,.28);
@@ -177,13 +213,13 @@
       display:inline-flex;
       align-items:center;
       gap:8px;
-      transition:.12s transform,.12s box-shadow,.12s border-color;
+      transition:.12s transform,.12s box-shadow,.12s border-color,.12s background;
       user-select:none;
       white-space:nowrap;
     }
     .avgBtn:hover{transform:translateY(-1px); box-shadow:0 10px 18px rgba(20,40,50,.08); border-color:rgba(87,136,153,.35)}
-    .avgBtn .lab{color:var(--muted); font-weight:800; font-size:12px}
     .avgBtn.active{border-color:rgba(87,136,153,.65); background:rgba(87,136,153,.12)}
+    .avgBtn[aria-pressed="true"]{border-color:rgba(87,136,153,.75); background:rgba(87,136,153,.14)}
 
     .chooser{
       margin-top:12px;
@@ -213,12 +249,23 @@
       padding:14px;
       background:#fff;
     }
+
+    /* UX#5: detailヘッダをsticky化 */
     .detailHead{
       display:flex;
       align-items:flex-start;
       justify-content:space-between;
       gap:10px;
       flex-wrap:wrap;
+
+      position:sticky;
+      top:0;
+      z-index:5;
+      background:#fff;
+      padding-top:2px;
+      padding-bottom:8px;
+      border-bottom:1px solid rgba(23,50,58,.10);
+      margin-bottom:8px;
     }
     .detailHead h3{margin:0; font-size:16px}
     .detailHead .mini{margin:4px 0 0; color:var(--muted); font-size:12px}
@@ -233,7 +280,41 @@
     }
     .k2 .t{font-size:12px; color:var(--muted); font-weight:800}
     .k2 .v{font-size:16px; font-weight:900; margin-top:6px}
+    .k2 .v.small{font-size:13px; font-weight:900; color:var(--muted)}
     .mutedLine{margin-top:8px; color:var(--muted); font-size:12px}
+
+    /* UX#6: 折りたたみ（details） */
+    details.fold{
+      margin-top:10px;
+      border:1px solid rgba(87,136,153,.22);
+      background:rgba(87,136,153,.04);
+      border-radius:14px;
+      padding:8px 10px;
+    }
+    details.fold summary{
+      cursor:pointer;
+      font-weight:900;
+      color:var(--text);
+      font-size:13px;
+      user-select:none;
+      list-style:none;
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    details.fold summary::-webkit-details-marker{ display:none; }
+    details.fold summary:before{
+      content:"▸";
+      display:inline-block;
+      transform:translateY(-1px);
+      color:var(--muted);
+    }
+    details.fold[open] summary:before{
+      content:"▾";
+    }
+    details.fold .inside{
+      margin-top:8px;
+    }
 
     .modalBack{
       position:fixed; inset:0; z-index:100;
@@ -307,6 +388,8 @@
       .k, .k2{background:#fff}
       a{color:#000; text-decoration:none}
       textarea{min-height:140px}
+      details.fold{border:1px solid #ddd; background:#fff;}
+      details.fold summary:before{content:"";}
     }
   </style>
 </head>
@@ -340,9 +423,9 @@
         <div class="avgWrap">
           <div class="avgTitle">支出の頻度</div>
           <div class="avgGrid" id="spendModeGrid">
-            <button type="button" class="avgBtn" id="modeMonthly"><span>毎月（固定費）</span></button>
-            <button type="button" class="avgBtn" id="modeYearly"><span>年額（固定費）</span></button>
-            <button type="button" class="avgBtn" id="modeOnce"><span>単発（1回）</span></button>
+            <button type="button" class="avgBtn" id="modeMonthly">毎月（固定費）</button>
+            <button type="button" class="avgBtn" id="modeYearly">年額（固定費）</button>
+            <button type="button" class="avgBtn" id="modeOnce">単発（1回）</button>
           </div>
         </div>
 
@@ -353,31 +436,33 @@
               <label for="spendMonthly">支出額（円 / 月）</label>
               <input id="spendMonthly" inputmode="numeric" pattern="[0-9]*" placeholder="例：20,000" data-format="int" />
               <div class="help">例：サブスク、保守料、固定費の増加など。</div>
+              <div class="err" id="spendMonthlyErr" aria-live="polite"></div>
             </div>
 
             <div id="boxSpendYearly" style="display:none;">
               <label for="spendYearly">支出額（円 / 年）</label>
               <input id="spendYearly" inputmode="numeric" pattern="[0-9]*" placeholder="例：240,000" data-format="int" />
               <div class="help">例：年額保守料、年間契約費など。</div>
+              <div class="err" id="spendYearlyErr" aria-live="polite"></div>
             </div>
 
             <div id="boxSpendOnce" style="display:none;">
               <label for="spendOnce">支出額（円 / 1回）</label>
               <input id="spendOnce" inputmode="numeric" pattern="[0-9]*" placeholder="例：600,000" data-format="int" />
+              <div class="err" id="spendOnceErr" aria-live="polite"></div>
 
               <div class="row" style="margin-top:10px;">
                 <div>
                   <label for="recoveryMonths">回収期間（ヶ月）</label>
 
-                  <div class="avgGrid" id="recoveryChipGrid" style="margin:0 0 8px;">
-                    <button type="button" class="avgBtn" data-rec-months="3">3ヶ月</button>
-                    <button type="button" class="avgBtn" data-rec-months="6">6ヶ月</button>
-                    <button type="button" class="avgBtn" data-rec-months="12">12ヶ月</button>
-                    <button type="button" class="avgBtn" data-rec-months="24">24ヶ月</button>
+                  <div class="avgWrap" style="margin-top:6px;">
+                    <div class="avgGrid" id="recoveryChipGrid" aria-label="回収期間プリセット"></div>
+                    <div class="help">クリックで入力できます。自由入力も可能です。</div>
                   </div>
 
                   <input id="recoveryMonths" inputmode="numeric" pattern="[0-9]*" placeholder="例：12" data-format="int" />
                   <div class="help">単発支出を、この期間で回収すると仮定して「月あたりの回収目標」を出します。</div>
+                  <div class="err" id="recoveryErr" aria-live="polite"></div>
                 </div>
                 <div>
                   <label>月割り支出（自動）</label>
@@ -391,6 +476,8 @@
           <div>
             <label for="cmr">限界利益率（%）</label>
             <input id="cmr" inputmode="decimal" pattern="[0-9.]*" placeholder="例：30" data-format="decimal" />
+            <div class="help">不明な場合は、まずは概算で入力（例：30）し、後で更新してもOKです。</div>
+            <div class="err" id="cmrErr" aria-live="polite"></div>
           </div>
         </div>
 
@@ -432,9 +519,15 @@
         <h2>2. 打ち手を検討</h2>
         <div class="p">売上換算額を「どうやって作るか」を3つの方向から検討します。</div>
 
-        <div class="talk" id="talkMemo">
-          「売上換算（支出額 ÷ 限界利益率）で“必要な売上”を揃えました。次に、これを <b>単価</b>・<b>数量</b>・<b>自動化</b> のどの方向で回収するかを一緒に決めましょう。」
-        </div>
+        <!-- UX#6: 補足は折りたたみ -->
+        <details class="fold" id="foldTalk">
+          <summary>補足（考え方）</summary>
+          <div class="inside">
+            <div class="talk" id="talkMemo">
+              「売上換算（支出額 ÷ 限界利益率）で“必要な売上”を揃えました。次に、これを <b>単価</b>・<b>数量</b>・<b>自動化</b> のどの方向で回収するかを一緒に決めましょう。」
+            </div>
+          </div>
+        </details>
 
         <div id="routeChooser" class="chooser" aria-label="打ち手の選択">
           <div class="bigCard">
@@ -469,7 +562,7 @@
               <div class="mini" id="detailSub">—</div>
             </div>
             <div class="btns">
-              <button class="btn primary" id="btnBack">3つの打ち手に戻る</button>
+              <button class="btn back" id="btnBack">3つの打ち手に戻る</button>
             </div>
           </div>
 
@@ -537,14 +630,14 @@
         <a href="https://www.matsumoto-kaikei.or.jp/" target="_blank" rel="noopener license">税理士法人松本会計事務所</a> ｜ 
         <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="license noopener">CC BY-NC-SA 4.0</a> ｜ 
         <a href="/tool-portal/terms.html" target="_blank" rel="noopener">利用条件</a> ｜ 
-        <span id="build-rev">r5</span>（<span id="last-updated-date"></span>）
+        <span id="build-rev">r6</span>（<span id="last-updated-date"></span>）
       </footer>
 
     </div>
 
     <!-- modal -->
     <div class="modalBack" id="modalBack" role="dialog" aria-modal="true" aria-label="ツール表示">
-      <div class="modal">
+      <div class="modal" role="document" aria-label="ツール本体">
         <div class="modalTop">
           <div class="modalTitle" id="modalTitle">ツールを表示 <span>（同一画面）</span></div>
           <div class="btns">
@@ -568,19 +661,7 @@
       volume: "https://takatrp.github.io/hendou_PL_LP/",
       auto:   "https://takatrp.github.io/jidouka-kouka-LP/"
     };
-
     const TIME_UNIT_COST_URL = "https://takatrp.github.io/time-unit-cost/";
-
-    const INDUSTRY_AVG = [
-      { key:"all",   label:"全産業", value:43.6 },
-      { key:"fish",  label:"漁業",   value:64.6 },
-      { key:"const", label:"建設業", value:39.9 },
-      { key:"mfg",   label:"製造業", value:44.8 },
-      { key:"wh",    label:"卸売業", value:20.5 },
-      { key:"rt",    label:"小売業", value:32.0 },
-      { key:"hotel", label:"宿泊業", value:79.2 },
-      { key:"food",  label:"飲食業", value:64.1 },
-    ];
 
     const VOLUME_LABEL_SETS = {
       generic: {
@@ -655,6 +736,8 @@
       }
     };
 
+    const RECOVERY_PRESETS = [3, 6, 12, 24];
+
     const KEY = "mk_action_tool_v4";
     const $ = (id)=>document.getElementById(id);
 
@@ -695,9 +778,17 @@
       if(!Number.isFinite(n)) return "—";
       return (Math.ceil(n*10)/10).toString();
     }
-    function clamp(n, lo, hi){
-      if(!Number.isFinite(n)) return lo;
-      return Math.max(lo, Math.min(hi, n));
+
+    function showErr(id, msg){
+      const el = $(id);
+      if(!el) return;
+      if(msg){
+        el.textContent = msg;
+        el.classList.add("show");
+      }else{
+        el.textContent = "";
+        el.classList.remove("show");
+      }
     }
 
     function formatIntInput(el){
@@ -773,84 +864,104 @@
       return VOLUME_LABEL_SETS[volumeLabelKey] || VOLUME_LABEL_SETS.generic;
     }
 
-    function setActiveAvg(key){
-      document.querySelectorAll(".avgBtn[data-avg-key]").forEach(b=>{
-        b.classList.toggle("active", b.dataset.avgKey === key);
-      });
-    }
-    function getActiveAvgKey(){
-      const a = document.querySelector(".avgBtn[data-avg-key].active");
-      return a ? a.dataset.avgKey : "";
-    }
-
-    function setActiveRecoveryChip(months){
-      document.querySelectorAll('[data-rec-months]').forEach(b=>{
-        b.classList.toggle("active", Number(b.dataset.recMonths) === Number(months));
-      });
-    }
-    function syncRecoveryChipFromInput(){
-      const m = Math.round(num($("recoveryMonths").value));
-      const hit = [3,6,12,24].includes(m) ? m : 0;
-      setActiveRecoveryChip(hit);
+    // UX#2: aria-pressedでトグル状態を表現
+    function setPressed(el, pressed){
+      if(!el) return;
+      el.setAttribute("aria-pressed", pressed ? "true" : "false");
     }
 
     function setSpendMode(mode){
       spendMode = mode;
-      // active button
-      ["modeMonthly","modeYearly","modeOnce"].forEach(id=>$(id).classList.remove("active"));
-      if(mode==="monthly") $("modeMonthly").classList.add("active");
-      if(mode==="yearly")  $("modeYearly").classList.add("active");
-      if(mode==="once")    $("modeOnce").classList.add("active");
+
+      // active button + aria
+      const ids = ["modeMonthly","modeYearly","modeOnce"];
+      ids.forEach(id=>{
+        const b = $(id);
+        b.classList.remove("active");
+        setPressed(b, false);
+      });
+
+      if(mode==="monthly"){ $("modeMonthly").classList.add("active"); setPressed($("modeMonthly"), true); }
+      if(mode==="yearly"){  $("modeYearly").classList.add("active");  setPressed($("modeYearly"), true); }
+      if(mode==="once"){    $("modeOnce").classList.add("active");    setPressed($("modeOnce"), true); }
 
       // show/hide boxes
       $("boxSpendMonthly").style.display = (mode==="monthly") ? "" : "none";
       $("boxSpendYearly").style.display  = (mode==="yearly")  ? "" : "none";
       $("boxSpendOnce").style.display    = (mode==="once")    ? "" : "none";
 
-      // default recovery months when switching to once
+      // UX#1: 単発に切り替えたとき、回収期間が空なら「12」を見える形でセット（サイレント排除）
       if(mode==="once"){
-        if(!$("recoveryMonths").value){
+        const raw = String($("recoveryMonths").value ?? "").trim();
+        if(raw === ""){
           $("recoveryMonths").value = "12";
           formatIntInput($("recoveryMonths"));
         }
-        syncRecoveryChipFromInput();
+        syncRecoveryChipsFromInput();
       }
 
       render();
       persist();
     }
 
+    function parseCmr(){
+      const raw = String($("cmr").value ?? "").trim();
+      if(raw === "") return { valid:false, cmrPct:NaN, cmr:NaN, raw };
+      const cmrPct = num(raw);
+      const valid = Number.isFinite(cmrPct) && cmrPct > 0 && cmrPct <= 100;
+      return { valid, cmrPct, cmr: valid ? cmrPct/100 : NaN, raw };
+    }
+
+    // UX#1: 回収期間は「未入力/不正」を明確に扱う
+    function parseRecoveryMonths(){
+      const raw = String($("recoveryMonths").value ?? "").trim();
+      if(raw === "") return { valid:false, months:NaN, raw, reason:"未入力" };
+      const m = num(raw);
+      const isInt = Number.isFinite(m) && Math.floor(m) === m;
+      if(!isInt) return { valid:false, months:NaN, raw, reason:"整数で入力してください" };
+      if(m < 1 || m > 120) return { valid:false, months:NaN, raw, reason:"1〜120の範囲で入力してください" };
+      return { valid:true, months:m, raw, reason:"" };
+    }
+
     function compute(){
-      const cmrPct = num($("cmr").value);
-      const cmr = (cmrPct>0) ? (cmrPct/100) : NaN;
+      const cmrInfo = parseCmr();
 
       const spendM = num($("spendMonthly").value);
       const spendY = num($("spendYearly").value);
       const spendO = num($("spendOnce").value);
-      const recoveryMonthsRaw = num($("recoveryMonths").value);
-      const recoveryMonths = clamp(recoveryMonthsRaw || 12, 1, 120);
 
       const annualSales = num($("annualSales").value);
       const monthlySalesAuto = (annualSales>0) ? (annualSales/12) : 0;
 
       // 月あたりの支出（単発は回収期間で月割り）
-      let spendPerMonth = 0;
-      if(spendMode==="monthly") spendPerMonth = spendM;
-      if(spendMode==="yearly")  spendPerMonth = spendY/12;
-      if(spendMode==="once")    spendPerMonth = (recoveryMonths>0) ? (spendO/recoveryMonths) : 0;
+      let spendPerMonth = NaN;
+      let recoveryInfo = { valid:true, months:NaN, raw:"", reason:"" };
+
+      if(spendMode==="monthly"){
+        spendPerMonth = (spendM>0) ? spendM : NaN;
+      }else if(spendMode==="yearly"){
+        spendPerMonth = (spendY>0) ? (spendY/12) : NaN;
+      }else{
+        recoveryInfo = parseRecoveryMonths();
+        if(spendO>0 && recoveryInfo.valid){
+          spendPerMonth = spendO / recoveryInfo.months;
+        }else{
+          spendPerMonth = NaN;
+        }
+      }
 
       // 売上換算：月あたり回収目標（＝以降の打ち手に使う基準）
-      const salesEqTargetM = (cmr>0 && spendPerMonth>0) ? (spendPerMonth / cmr) : NaN;
+      const salesEqTargetM = (cmrInfo.valid && Number.isFinite(spendPerMonth)) ? (spendPerMonth / cmrInfo.cmr) : NaN;
 
       // 年換算（固定費系のみ意味が明確）
-      const salesEqAnnual = (cmr>0)
+      const salesEqAnnual = (cmrInfo.valid)
         ? (spendMode==="monthly" ? (Number.isFinite(salesEqTargetM)? salesEqTargetM*12 : NaN)
-          : spendMode==="yearly" ? (spendY>0 ? (spendY / cmr) : NaN)
+          : spendMode==="yearly" ? (spendY>0 ? (spendY / cmrInfo.cmr) : NaN)
           : NaN)
         : NaN;
 
       // 単発：総額換算
-      const salesEqTotal = (cmr>0 && spendMode==="once" && spendO>0) ? (spendO / cmr) : NaN;
+      const salesEqTotal = (cmrInfo.valid && spendMode==="once" && spendO>0) ? (spendO / cmrInfo.cmr) : NaN;
 
       // 年商比：固定費→年換算、単発→総額で比較
       const shareY = (annualSales>0)
@@ -865,9 +976,9 @@
         : NaN;
 
       return {
-        cmrPct, cmr,
+        cmrInfo,
         spendM, spendY, spendO,
-        recoveryMonths,
+        recoveryInfo,
         spendPerMonth,
         annualSales, monthlySalesAuto,
         salesEqTargetM, salesEqAnnual, salesEqTotal,
@@ -875,25 +986,39 @@
       };
     }
 
-    function buildAvgChips(){
-      const grid = $("avgGrid");
+    // UX#1: 回収期間チップ
+    function buildRecoveryChips(){
+      const grid = $("recoveryChipGrid");
       if(!grid) return;
       grid.innerHTML = "";
-      INDUSTRY_AVG.forEach(item=>{
+      RECOVERY_PRESETS.forEach(m=>{
         const b = document.createElement("button");
         b.type = "button";
         b.className = "avgBtn";
-        b.dataset.avgKey = item.key;
-        b.setAttribute("data-avg-key","1");
-        b.innerHTML = `<span class="lab">${item.label}</span><span>${item.value}%</span>`;
+        b.id = "rec_" + m;
+        b.textContent = `${m}ヶ月`;
+        setPressed(b, false);
         b.addEventListener("click", ()=>{
-          $("cmr").value = String(item.value);
-          formatDecimalInput($("cmr"));
-          setActiveAvg(item.key);
+          $("recoveryMonths").value = String(m);
+          formatIntInput($("recoveryMonths"));
+          syncRecoveryChipsFromInput();
           render();
           persist();
         });
         grid.appendChild(b);
+      });
+      syncRecoveryChipsFromInput();
+    }
+
+    function syncRecoveryChipsFromInput(){
+      const raw = String($("recoveryMonths").value ?? "").trim().replace(/[,，\s]/g,'');
+      const v = raw ? Number(raw) : NaN;
+      RECOVERY_PRESETS.forEach(m=>{
+        const b = document.getElementById("rec_" + m);
+        if(!b) return;
+        const active = (Number.isFinite(v) && v === m);
+        b.classList.toggle("active", active);
+        setPressed(b, active);
       });
     }
 
@@ -906,8 +1031,10 @@
         b.type="button";
         b.className="avgBtn";
         b.dataset.vkey = item.key;
-        b.innerHTML = `<span>${item.label}</span>`;
+        b.textContent = item.label; // 「用語」削除
         b.classList.toggle("active", item.key===volumeLabelKey);
+        setPressed(b, item.key===volumeLabelKey);
+
         b.addEventListener("click", ()=>{
           const keep = {
             unitPrice: $("volumeUnitPrice") ? $("volumeUnitPrice").value : "",
@@ -931,6 +1058,41 @@
         grid.appendChild(b);
       });
       container.appendChild(grid);
+    }
+
+    function validateStep1Errors(c){
+      // CMR
+      if(c.cmrInfo.raw !== "" && !c.cmrInfo.valid){
+        showErr("cmrErr", "限界利益率は 0〜100 の範囲で入力してください。");
+      }else{
+        showErr("cmrErr", "");
+      }
+
+      // 支出（不正値のみ）
+      showErr("spendMonthlyErr", "");
+      showErr("spendYearlyErr", "");
+      showErr("spendOnceErr", "");
+      if(spendMode==="monthly"){
+        const raw = String($("spendMonthly").value ?? "").trim();
+        if(raw !== "" && c.spendM <= 0) showErr("spendMonthlyErr", "支出額は 0 より大きい数値で入力してください。");
+      }
+      if(spendMode==="yearly"){
+        const raw = String($("spendYearly").value ?? "").trim();
+        if(raw !== "" && c.spendY <= 0) showErr("spendYearlyErr", "支出額は 0 より大きい数値で入力してください。");
+      }
+      if(spendMode==="once"){
+        const raw = String($("spendOnce").value ?? "").trim();
+        if(raw !== "" && c.spendO <= 0) showErr("spendOnceErr", "支出額は 0 より大きい数値で入力してください。");
+
+        // 回収期間（未入力は赤にしない。不正/範囲外だけ表示）
+        if(c.recoveryInfo.raw !== "" && !c.recoveryInfo.valid){
+          showErr("recoveryErr", c.recoveryInfo.reason || "回収期間を確認してください。");
+        }else{
+          showErr("recoveryErr", "");
+        }
+      }else{
+        showErr("recoveryErr", "");
+      }
     }
 
     function buildRouteDetailUI(){
@@ -977,7 +1139,7 @@
           <label>入力</label>
 
           <div class="avgWrap" style="margin-top:6px;">
-            <div class="avgTitle">用語の言い換え（任意）</div>
+            <div class="avgTitle">言い換え（任意）</div>
             <div id="volumeLabelChips"></div>
             <div class="help" style="margin-top:8px;">
               ※ここは<strong>言葉の言い換え</strong>です。計算は同じです。まずは「汎用」でOKです。
@@ -988,31 +1150,38 @@
             <label for="volumeUnitPrice">${L.unitPriceLabel}</label>
             <input id="volumeUnitPrice" inputmode="numeric" pattern="[0-9]*" placeholder="例：12,000" data-format="int" />
             <div class="help">${L.unitHelp}</div>
+            <div class="err" id="volumeUnitPriceErr" aria-live="polite"></div>
           </div>
 
           <div style="margin-top:10px;">
             <label for="volumeConvRate">${L.convLabel}（% / 任意）</label>
             <input id="volumeConvRate" inputmode="decimal" pattern="[0-9.]*" placeholder="例：30" data-format="decimal" />
             <div class="help">${L.convHelp}</div>
+            <div class="err" id="volumeConvRateErr" aria-live="polite"></div>
           </div>
 
           <div style="margin-top:10px;">
             <label for="volumeDays">${L.daysLabel}（任意）</label>
             <input id="volumeDays" inputmode="numeric" pattern="[0-9]*" placeholder="例：25" data-format="int" />
             <div class="help">日割り（1日あたり必要数）を出したい場合に入力してください。</div>
+            <div class="err" id="volumeDaysErr" aria-live="polite"></div>
           </div>
         `;
 
         inputB.innerHTML = `
-          <label>整理のしかた</label>
-          <div class="help">
-            ① 月あたり回収目標（必要な売上）を出す → ② ${L.unitPriceLabel} で割って<strong>必要な追加${L.txName}数</strong>を出す<br>
-            ③ さらに ${L.convLabel} を使って<strong>${L.entryLabel}</strong>（前段の数）を目安で出します。
-          </div>
+          <details class="fold" open>
+            <summary>整理のしかた（見方）</summary>
+            <div class="inside">
+              <div class="help">
+                ① 月あたり回収目標（必要な売上）を出す → ② ${L.unitPriceLabel} で割って<strong>必要な追加${L.txName}数</strong>を出す<br>
+                ③ さらに ${L.convLabel} を使って<strong>${L.entryLabel}</strong>（前段の数）を目安で出します。
+              </div>
 
-          <div class="note" style="margin-top:10px;">
-            数量アップは「入口を増やす」だけでなく、「成約率を上げる」でも実現できます。
-          </div>
+              <div class="note" style="margin-top:10px;">
+                数量アップは「入口を増やす」だけでなく、「成約率を上げる」でも実現できます。
+              </div>
+            </div>
+          </details>
         `;
 
         kpi.innerHTML = `
@@ -1062,14 +1231,19 @@
           <label for="hourCostInput">時間単価（円 / 時）</label>
           <input id="hourCostInput" inputmode="numeric" pattern="[0-9]*" placeholder="例：3,000" data-format="int" />
           <div class="help">社内の実態に合わせた目安でOKです（概算）。</div>
+          <div class="err" id="hourCostErr" aria-live="polite"></div>
 
           <div class="avgWrap" style="margin-top:10px;">
-            <div class="avgGrid">
-              <button type="button" class="avgBtn" id="btnTimeUnitCostModal">時間単価の計算はこちら</button>
-              <button type="button" class="avgBtn" id="btnTimeUnitCostNewTab">別タブで開く</button>
+            <div class="avgGrid" aria-label="時間単価計算ツール">
+              <button type="button" class="avgBtn" id="btnTimeCostModal">時間単価の計算はこちら</button>
+              <button type="button" class="avgBtn" id="btnTimeCostNewTab">別タブで開く</button>
+            </div>
+            <div class="help" style="margin-top:6px;">
+              ※時間単価が不明な場合にご利用ください。
             </div>
           </div>
         `;
+
         inputB.innerHTML = `
           <label>ポイント</label>
           <div class="help">“空いた時間”を、単価/数量を上げる活動へ移すことで効果が大きくなります。</div>
@@ -1089,26 +1263,32 @@
         $("detailHint").textContent = "『どの作業を削るか』『運用ルール』まで決めると、再現性が出ます。";
 
         bindLiveFormatting(document);
-
-        const btnT1 = $("btnTimeUnitCostModal");
-        const btnT2 = $("btnTimeUnitCostNewTab");
-        if(btnT1 && btnT1.dataset.bound !== "1"){
-          btnT1.dataset.bound = "1";
-          btnT1.addEventListener("click", ()=>{
-            openModal("時間単価の計算ツール", TIME_UNIT_COST_URL);
-          });
-        }
-        if(btnT2 && btnT2.dataset.bound !== "1"){
-          btnT2.dataset.bound = "1";
-          btnT2.addEventListener("click", ()=>{
-            window.open(TIME_UNIT_COST_URL, "_blank", "noopener,noreferrer");
-          });
-        }
-
         if($("hourCostInput")){
           $("hourCostInput").addEventListener("input", ()=>{
             updateRouteDetailKPIs();
             persist();
+          });
+
+          $("hourCostInput").addEventListener("input", ()=>{
+            // UX#3: 不正値のみエラー
+            const raw = String($("hourCostInput").value ?? "").trim();
+            const v = num(raw);
+            if(raw !== "" && v <= 0) showErr("hourCostErr", "時間単価は 0 より大きい数値で入力してください。");
+            else showErr("hourCostErr", "");
+          });
+        }
+
+        // 時間単価計算ツール：同一画面/別タブ
+        const b1 = $("btnTimeCostModal");
+        const b2 = $("btnTimeCostNewTab");
+        if(b1){
+          b1.addEventListener("click", ()=>{
+            openModal("時間単価の計算", TIME_UNIT_COST_URL);
+          });
+        }
+        if(b2){
+          b2.addEventListener("click", ()=>{
+            window.open(TIME_UNIT_COST_URL, "_blank", "noopener,noreferrer");
           });
         }
       }
@@ -1120,38 +1300,96 @@
       if(!selectedRoute) return;
       const c = compute();
 
-      if($("kpiSalesEqM")) $("kpiSalesEqM").textContent = Number.isFinite(c.salesEqTargetM) ? yen(c.salesEqTargetM) : "—";
+      if($("kpiSalesEqM")) {
+        $("kpiSalesEqM").textContent = Number.isFinite(c.salesEqTargetM) ? yen(c.salesEqTargetM) : "支出額と限界利益率を入力";
+        if(!Number.isFinite(c.salesEqTargetM)) $("kpiSalesEqM").classList.add("small");
+        else $("kpiSalesEqM").classList.remove("small");
+      }
+
       if(selectedRoute === "price"){
-        if($("kpiNeedPricePct")) $("kpiNeedPricePct").textContent = Number.isFinite(c.needPricePct) ? pct1(c.needPricePct) : "—";
+        if($("kpiNeedPricePct")){
+          if(c.annualSales>0 && Number.isFinite(c.needPricePct)){
+            $("kpiNeedPricePct").textContent = pct1(c.needPricePct);
+            $("kpiNeedPricePct").classList.remove("small");
+          }else{
+            $("kpiNeedPricePct").textContent = "年商を入力すると表示";
+            $("kpiNeedPricePct").classList.add("small");
+          }
+        }
       }
 
       if(selectedRoute === "volume"){
         const L = volLabels();
+        const unitRaw = $("volumeUnitPrice") ? String($("volumeUnitPrice").value ?? "").trim() : "";
         const unitPrice = $("volumeUnitPrice") ? num($("volumeUnitPrice").value) : 0;
+
+        const convRaw = $("volumeConvRate") ? String($("volumeConvRate").value ?? "").trim() : "";
         const convRate = $("volumeConvRate") ? num($("volumeConvRate").value) : 0;
+
+        const daysRaw = $("volumeDays") ? String($("volumeDays").value ?? "").trim() : "";
         const days = $("volumeDays") ? num($("volumeDays").value) : 0;
 
-        const needTxM = (unitPrice>0 && Number.isFinite(c.salesEqTargetM)) ? (c.salesEqTargetM / unitPrice) : NaN;
+        // UX#3: 不正値のみエラー
+        if($("volumeUnitPriceErr")){
+          if(unitRaw !== "" && unitPrice <= 0) showErr("volumeUnitPriceErr", "単価は 0 より大きい数値で入力してください。");
+          else showErr("volumeUnitPriceErr", "");
+        }
+        if($("volumeConvRateErr")){
+          if(convRaw !== "" && !(convRate>0 && convRate<=100)) showErr("volumeConvRateErr", "成約率は 0〜100 の範囲で入力してください。");
+          else showErr("volumeConvRateErr", "");
+        }
+        if($("volumeDaysErr")){
+          if(daysRaw !== "" && days <= 0) showErr("volumeDaysErr", "日数は 0 より大きい数値で入力してください。");
+          else showErr("volumeDaysErr", "");
+        }
+
+        const canBase = (unitPrice>0 && Number.isFinite(c.salesEqTargetM));
+        const needTxM = canBase ? (c.salesEqTargetM / unitPrice) : NaN;
         const needTxD = (days>0 && Number.isFinite(needTxM)) ? (needTxM / days) : NaN;
 
-        const needEntryM = (convRate>0 && Number.isFinite(needTxM)) ? (needTxM / (convRate/100)) : NaN;
+        const canEntry = (convRate>0 && convRate<=100 && Number.isFinite(needTxM));
+        const needEntryM = canEntry ? (needTxM / (convRate/100)) : NaN;
         const needEntryD = (days>0 && Number.isFinite(needEntryM)) ? (needEntryM / days) : NaN;
 
-        if($("kpiNeedTxM")) $("kpiNeedTxM").textContent =
-          Number.isFinite(needTxM) ? (ceil1(needTxM) + " " + L.unitShort + "/月") : "—";
-        if($("kpiNeedTxD")) $("kpiNeedTxD").textContent =
-          Number.isFinite(needTxD) ? (ceil1(needTxD) + " " + L.unitShort + "/日") : "—";
-        if($("kpiNeedEntryM")) $("kpiNeedEntryM").textContent =
-          Number.isFinite(needEntryM) ? (ceil1(needEntryM) + " " + L.entryShort + "/月") : "—";
-        if($("kpiNeedEntryD")) $("kpiNeedEntryD").textContent =
-          Number.isFinite(needEntryD) ? (ceil1(needEntryD) + " " + L.entryShort + "/日") : "—";
+        function setVal(id, txt, small){
+          const el = $(id);
+          if(!el) return;
+          el.textContent = txt;
+          el.classList.toggle("small", !!small);
+        }
+
+        if(!canBase){
+          setVal("kpiNeedTxM", "単価と回収目標を入力", true);
+          setVal("kpiNeedTxD", "日数を入れると表示", true);
+          setVal("kpiNeedEntryM", "成約率を入れると表示", true);
+          setVal("kpiNeedEntryD", "成約率+日数で表示", true);
+        }else{
+          setVal("kpiNeedTxM", (ceil1(needTxM) + " " + L.unitShort + "/月"), false);
+          setVal("kpiNeedTxD", Number.isFinite(needTxD) ? (ceil1(needTxD) + " " + L.unitShort + "/日") : "日数を入れると表示", !Number.isFinite(needTxD));
+          setVal("kpiNeedEntryM", Number.isFinite(needEntryM) ? (ceil1(needEntryM) + " " + L.entryShort + "/月") : "成約率を入れると表示", !Number.isFinite(needEntryM));
+          setVal("kpiNeedEntryD", Number.isFinite(needEntryD) ? (ceil1(needEntryD) + " " + L.entryShort + "/日") : "成約率+日数で表示", !Number.isFinite(needEntryD));
+        }
       }
 
       if(selectedRoute === "auto"){
+        const hourRaw = $("hourCostInput") ? String($("hourCostInput").value ?? "").trim() : "";
         const hour = $("hourCostInput") ? num($("hourCostInput").value) : 0;
-        const needHours = (hour>0) ? (c.spendPerMonth/hour) : NaN;
-        if($("kpiSpendMonthlyEq")) $("kpiSpendMonthlyEq").textContent = c.spendPerMonth>0 ? yen(c.spendPerMonth) : "—";
-        if($("kpiNeedHours")) $("kpiNeedHours").textContent = Number.isFinite(needHours) ? (ceil1(needHours)+" h/月") : "—";
+        const needHours = (hour>0 && Number.isFinite(c.spendPerMonth)) ? (c.spendPerMonth/hour) : NaN;
+
+        if($("kpiSpendMonthlyEq")){
+          $("kpiSpendMonthlyEq").textContent = Number.isFinite(c.spendPerMonth) ? yen(c.spendPerMonth) : "支出額（単発は回収期間）を入力";
+          $("kpiSpendMonthlyEq").classList.toggle("small", !Number.isFinite(c.spendPerMonth));
+        }
+
+        if($("kpiNeedHours")){
+          if(Number.isFinite(needHours)){
+            $("kpiNeedHours").textContent = (ceil1(needHours)+" h/月");
+            $("kpiNeedHours").classList.remove("small");
+          }else{
+            $("kpiNeedHours").textContent = (hourRaw ? "支出額を入力" : "時間単価を入力");
+            $("kpiNeedHours").classList.add("small");
+          }
+        }
       }
     }
 
@@ -1176,37 +1414,80 @@
 
     function render(){
       const c = compute();
+      validateStep1Errors(c);
 
       // monthly sales
       $("monthlySalesAuto").value = (c.annualSales>0) ? yen(c.monthlySalesAuto) : "";
 
       // once: monthly-equivalent spend
       if(spendMode==="once"){
-        $("spendMonthlyEqAuto").value = (c.spendPerMonth>0) ? yen(c.spendPerMonth) : "";
-        syncRecoveryChipFromInput();
+        $("spendMonthlyEqAuto").value = Number.isFinite(c.spendPerMonth) ? yen(c.spendPerMonth) : "—";
+        syncRecoveryChipsFromInput();
+      }else{
+        $("spendMonthlyEqAuto").value = "";
       }
 
       // KPI titles + values
-      if(spendMode==="monthly"){
+      if(spendMode==="monthly" || spendMode==="yearly"){
         $("kpiT1").textContent = "売上換算額（円 / 月）";
         $("kpiT2").textContent = "売上換算額（円 / 年）";
-        $("salesEqM").textContent = Number.isFinite(c.salesEqTargetM) ? yen(c.salesEqTargetM) : "—";
-        $("salesEqY").textContent = Number.isFinite(c.salesEqAnnual) ? yen(c.salesEqAnnual) : "—";
+
+        if(Number.isFinite(c.salesEqTargetM)){
+          $("salesEqM").textContent = yen(c.salesEqTargetM);
+          $("salesEqM").classList.remove("small");
+        }else{
+          $("salesEqM").textContent = "支出額と限界利益率を入力";
+          $("salesEqM").classList.add("small");
+        }
+
+        if(Number.isFinite(c.salesEqAnnual)){
+          $("salesEqY").textContent = yen(c.salesEqAnnual);
+          $("salesEqY").classList.remove("small");
+        }else{
+          $("salesEqY").textContent = "支出額と限界利益率を入力";
+          $("salesEqY").classList.add("small");
+        }
       }
-      if(spendMode==="yearly"){
-        $("kpiT1").textContent = "売上換算額（円 / 月）";
-        $("kpiT2").textContent = "売上換算額（円 / 年）";
-        $("salesEqM").textContent = Number.isFinite(c.salesEqTargetM) ? yen(c.salesEqTargetM) : "—";
-        $("salesEqY").textContent = Number.isFinite(c.salesEqAnnual) ? yen(c.salesEqAnnual) : "—";
-      }
+
       if(spendMode==="once"){
         $("kpiT1").textContent = "売上換算額（総額）";
         $("kpiT2").textContent = "回収目標（円 / 月）";
-        $("salesEqM").textContent = Number.isFinite(c.salesEqTotal) ? yen(c.salesEqTotal) : "—";
-        $("salesEqY").textContent = Number.isFinite(c.salesEqTargetM) ? yen(c.salesEqTargetM) : "—";
+
+        if(Number.isFinite(c.salesEqTotal)){
+          $("salesEqM").textContent = yen(c.salesEqTotal);
+          $("salesEqM").classList.remove("small");
+        }else{
+          $("salesEqM").textContent = "支出額と限界利益率を入力";
+          $("salesEqM").classList.add("small");
+        }
+
+        if(Number.isFinite(c.salesEqTargetM)){
+          $("salesEqY").textContent = yen(c.salesEqTargetM);
+          $("salesEqY").classList.remove("small");
+        }else{
+          // 回収期間未入力が原因の場合は明示
+          const rmRaw = String($("recoveryMonths").value ?? "").trim();
+          if(rmRaw === ""){
+            $("salesEqY").textContent = "回収期間を入力";
+          }else{
+            $("salesEqY").textContent = "支出額と限界利益率を入力";
+          }
+          $("salesEqY").classList.add("small");
+        }
       }
 
-      $("shareY").textContent = Number.isFinite(c.shareY) ? pct1(c.shareY) : "—";
+      // 年商比は「年商を入れると表示」で“壊れ感”を軽減（UX#3）
+      if(Number.isFinite(c.shareY)){
+        $("shareY").textContent = pct1(c.shareY);
+        $("shareY").classList.remove("small");
+      }else{
+        if(c.annualSales>0){
+          $("shareY").textContent = "入力値を確認";
+        }else{
+          $("shareY").textContent = "年商を入力すると表示";
+        }
+        $("shareY").classList.add("small");
+      }
 
       // step 3 label
       $("selectedRouteLabel").value =
@@ -1223,7 +1504,11 @@
       persist();
     }
 
+    // modal（UX#4: フォーカストラップ＋復帰）
     let currentUrl = "";
+    let lastFocusEl = null;
+    let modalOpen = false;
+
     function getToolTitle(){
       return selectedRoute==="price" ? "価格改定ツール" :
              selectedRoute==="volume" ? "変動PLツール" :
@@ -1232,17 +1517,81 @@
     function getToolUrl(){
       return selectedRoute ? TOOL_URLS[selectedRoute] : "";
     }
+    function getFocusable(root){
+      const sel = [
+        'button:not([disabled])',
+        'a[href]',
+        'input:not([disabled])',
+        'textarea:not([disabled])',
+        'select:not([disabled])',
+        '[tabindex]:not([tabindex="-1"])'
+      ].join(',');
+      return Array.from(root.querySelectorAll(sel)).filter(el=>{
+        const style = window.getComputedStyle(el);
+        return style.display !== "none" && style.visibility !== "hidden";
+      });
+    }
     function openModal(title, url){
+      lastFocusEl = document.activeElement;
       currentUrl = url;
-      $("modalTitle").textContent = title + "（同一画面）";
+
+      // title with span 유지
+      $("modalTitle").innerHTML = `${title} <span>（同一画面）</span>`;
+
       $("toolFrame").src = url;
       $("modalBack").style.display = "flex";
+      document.body.style.overflow = "hidden";
+
+      modalOpen = true;
+
+      // 初期フォーカス
+      setTimeout(()=>{
+        try{ $("btnClose").focus(); }catch(e){}
+      }, 0);
     }
     function closeModal(){
       $("modalBack").style.display = "none";
       $("toolFrame").src = "about:blank";
       currentUrl = "";
+      document.body.style.overflow = "";
+      modalOpen = false;
+
+      // フォーカス復帰
+      if(lastFocusEl && typeof lastFocusEl.focus === "function"){
+        try{ lastFocusEl.focus(); }catch(e){}
+      }
+      lastFocusEl = null;
     }
+
+    // フォーカストラップ
+    document.addEventListener("keydown", (e)=>{
+      if(!modalOpen) return;
+      if(e.key === "Escape"){
+        e.preventDefault();
+        closeModal();
+        return;
+      }
+      if(e.key !== "Tab") return;
+
+      const focusables = getFocusable(document.querySelector("#modalBack .modal"));
+      if(focusables.length === 0) return;
+
+      const first = focusables[0];
+      const last  = focusables[focusables.length - 1];
+      const active = document.activeElement;
+
+      if(e.shiftKey){
+        if(active === first || !focusables.includes(active)){
+          e.preventDefault();
+          last.focus();
+        }
+      }else{
+        if(active === last){
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    }, true);
 
     function getState(){
       return {
@@ -1258,12 +1607,12 @@
         targetScope: $("targetScope").value,
         checkKpi: $("checkKpi").value,
         freeMemo: $("freeMemo").value,
-        activeAvgKey: getActiveAvgKey(),
         volumeLabelKey,
         volumeUnitPrice: $("volumeUnitPrice") ? $("volumeUnitPrice").value : "",
         volumeConvRate: $("volumeConvRate") ? $("volumeConvRate").value : "",
         volumeDays: $("volumeDays") ? $("volumeDays").value : "",
         hourCost: $("hourCostInput") ? $("hourCostInput").value : "",
+        foldTalkOpen: $("foldTalk") ? $("foldTalk").open : false
       };
     }
     function persist(){ save(getState()); }
@@ -1278,13 +1627,16 @@
       if(v.cmr!=null) $("cmr").value = v.cmr;
       if(v.annualSales!=null) $("annualSales").value = v.annualSales;
 
-      if(v.activeAvgKey) setActiveAvg(v.activeAvgKey);
       if(v.startDate!=null) $("startDate").value = v.startDate;
       if(v.targetScope!=null) $("targetScope").value = v.targetScope;
       if(v.checkKpi!=null) $("checkKpi").value = v.checkKpi;
       if(v.freeMemo!=null) $("freeMemo").value = v.freeMemo;
 
       if(v.volumeLabelKey) volumeLabelKey = v.volumeLabelKey;
+
+      if($("foldTalk") && typeof v.foldTalkOpen === "boolean"){
+        $("foldTalk").open = v.foldTalkOpen;
+      }
 
       if(v.selectedRoute==="price" || v.selectedRoute==="volume" || v.selectedRoute==="auto"){
         setRoute(v.selectedRoute);
@@ -1310,8 +1662,13 @@
       ["spendMonthly","spendYearly","spendOnce","recoveryMonths","cmr","annualSales","startDate","targetScope","checkKpi","freeMemo"].forEach(id=>$(id).value="");
       $("monthlySalesAuto").value = "";
       $("spendMonthlyEqAuto").value = "";
-      setActiveAvg("");
-      setActiveRecoveryChip(0);
+
+      showErr("cmrErr", "");
+      showErr("spendMonthlyErr", "");
+      showErr("spendYearlyErr", "");
+      showErr("spendOnceErr", "");
+      showErr("recoveryErr", "");
+
       volumeLabelKey = "generic";
       setRoute("");
       localStorage.removeItem(KEY);
@@ -1320,25 +1677,15 @@
     }
 
     // init
-    buildAvgChips();
     bindLiveFormatting(document);
-
-    // recovery chips
-    document.querySelectorAll('[data-rec-months]').forEach(btn=>{
-      btn.addEventListener("click", ()=>{
-        const m = Number(btn.dataset.recMonths);
-        $("recoveryMonths").value = String(m);
-        formatIntInput($("recoveryMonths"));
-        setActiveRecoveryChip(m);
-        render();
-      });
-    });
-    $("recoveryMonths").addEventListener("input", syncRecoveryChipFromInput);
+    buildRecoveryChips();
 
     // spend mode handlers
     $("modeMonthly").addEventListener("click", ()=>setSpendMode("monthly"));
     $("modeYearly").addEventListener("click",  ()=>setSpendMode("yearly"));
     $("modeOnce").addEventListener("click",    ()=>setSpendMode("once"));
+
+    // 初期：monthly
     setSpendMode("monthly");
 
     // restore from localStorage
@@ -1352,7 +1699,10 @@
 
     // change events
     ["spendMonthly","spendYearly","spendOnce","recoveryMonths","cmr","annualSales","startDate","targetScope","checkKpi","freeMemo"].forEach(id=>{
-      $(id).addEventListener("input", render);
+      $(id).addEventListener("input", ()=>{
+        if(id==="recoveryMonths") syncRecoveryChipsFromInput();
+        render();
+      });
     });
 
     // route pick
@@ -1378,7 +1728,6 @@
     });
     $("btnClose").addEventListener("click", closeModal);
     $("modalBack").addEventListener("click", (e)=>{ if(e.target === $("modalBack")) closeModal(); });
-    window.addEventListener("keydown", (e)=>{ if(e.key === "Escape") closeModal(); });
     $("btnOpenNewTab2").addEventListener("click", ()=>{ if(currentUrl) window.open(currentUrl, "_blank", "noopener,noreferrer"); });
 
     // print
@@ -1399,8 +1748,12 @@
       }else if(spendMode==="yearly"){
         spendLine = `・支出（年）：${yen(c.spendY)}`;
       }else{
-        spendLine = `・支出（単発）：${yen(c.spendO)}／回収期間：${c.recoveryMonths}ヶ月（月割り ${yen(c.spendPerMonth)}）`;
+        const rm = String($("recoveryMonths").value ?? "").trim();
+        const rmDisp = rm ? rm : "—";
+        spendLine = `・支出（単発）：${yen(c.spendO)}／回収期間：${rmDisp}ヶ月（月割り ${Number.isFinite(c.spendPerMonth)?yen(c.spendPerMonth):"—"}）`;
       }
+
+      const cmrDisp = $("cmr").value ? ($("cmr").value + "%") : "—";
 
       let eqLine = "";
       if(spendMode==="once"){
@@ -1418,7 +1771,7 @@
         const unitPrice = $("volumeUnitPrice") ? num($("volumeUnitPrice").value) : 0;
         const convRate = $("volumeConvRate") ? num($("volumeConvRate").value) : 0;
         const needTxM = (unitPrice>0 && Number.isFinite(c.salesEqTargetM)) ? (c.salesEqTargetM / unitPrice) : NaN;
-        const needEntryM = (convRate>0 && Number.isFinite(needTxM)) ? (needTxM / (convRate/100)) : NaN;
+        const needEntryM = (convRate>0 && convRate<=100 && Number.isFinite(needTxM)) ? (needTxM / (convRate/100)) : NaN;
 
         routeDetail =
 `・${L.unitPriceLabel}：${unitPrice?yen(unitPrice):"—"}
@@ -1428,7 +1781,7 @@
       }
       if(selectedRoute==="auto"){
         const hour = $("hourCostInput") ? num($("hourCostInput").value) : 0;
-        const needHours = (hour>0) ? (c.spendPerMonth/hour) : NaN;
+        const needHours = (hour>0 && Number.isFinite(c.spendPerMonth)) ? (c.spendPerMonth/hour) : NaN;
         routeDetail = `・時間単価：${hour?yen(hour):"—"}／回収に必要な削減時間：${Number.isFinite(needHours)?(ceil1(needHours)+" h/月"):"—"}`;
       }
 
@@ -1436,7 +1789,7 @@
 `【打ち手検討（概算）】
 ■1. 売上換算
 ${spendLine}
-・限界利益率：${$("cmr").value ? ($("cmr").value + "%") : "—"}
+・限界利益率：${cmrDisp}
 ${eqLine}
 ・年商比：${Number.isFinite(c.shareY)?pct1(c.shareY):"—"}
 ・月商（年商÷12）：${c.annualSales>0 ? yen(c.monthlySalesAuto) : "—"}
