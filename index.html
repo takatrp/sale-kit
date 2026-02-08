@@ -1,15 +1,10 @@
 <!doctype html>
-<!-- internal version: r6
+<!-- internal version: r5
   changes:
-  - （前回対応）STEP1の「入力チップ（steps）」を削除
-  - （前回対応）単発：回収期間（月）のプリセットチップ＋自由入力（初期値12）
-  - （前回対応）各打ち手の「3つの打ち手に戻る」ボタンを目立たせる（primary化）
-  - 「支出の種類」→「支出の頻度」
-  - 支出タイプチップ内の「タイプ」削除（チップは残す）
-  - 回収期間チップ内の「期間」削除（チップは残す）
-  - 「参考：産業ごとの全国平均」チップ群を削除
-  - 「数量を上げる」用語チップ内の「用語」削除
-  - 「業務プロセスを自動化する」：時間単価の計算リンクチップ追加
+  - 支出タイプ切替（毎月 / 年額 / 単発）
+  - 単発は回収期間（月）で月割りして「月あたり回収目標」を算出
+  - KPI表示を支出タイプに応じて切替（総額/年額/月額）
+  - 以降の打ち手計算は「月あたり回収目標（売上換算）」を基準に統一
 -->
 <html lang="ja">
 <head>
@@ -104,6 +99,19 @@
       font-size:12px;
     }
 
+    .steps{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px}
+    .chip{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:7px 10px;
+      border-radius:999px;
+      border:1px solid rgba(87,136,153,.22);
+      background:rgba(87,136,153,.06);
+      font-size:12px;
+      color:var(--muted);
+      font-weight:800;
+    }
+    .chip b{color:var(--text)}
+
     .row{display:grid; grid-template-columns:1fr 1fr; gap:10px}
     @media (max-width:760px){ .row{grid-template-columns:1fr} }
 
@@ -172,9 +180,7 @@
       transition:.12s transform,.12s box-shadow,.12s border-color;
       user-select:none;
       white-space:nowrap;
-      text-decoration:none;
     }
-    a.avgBtn{ text-decoration:none; }
     .avgBtn:hover{transform:translateY(-1px); box-shadow:0 10px 18px rgba(20,40,50,.08); border-color:rgba(87,136,153,.35)}
     .avgBtn .lab{color:var(--muted); font-weight:800; font-size:12px}
     .avgBtn.active{border-color:rgba(87,136,153,.65); background:rgba(87,136,153,.12)}
@@ -363,8 +369,12 @@
                 <div>
                   <label for="recoveryMonths">回収期間（ヶ月）</label>
 
-                  <!-- 回収期間：プリセットチップ（自由入力も可） -->
-                  <div class="avgGrid" id="recoveryChipGrid" style="margin-bottom:8px;"></div>
+                  <div class="avgGrid" id="recoveryChipGrid" style="margin:0 0 8px;">
+                    <button type="button" class="avgBtn" data-rec-months="3">3ヶ月</button>
+                    <button type="button" class="avgBtn" data-rec-months="6">6ヶ月</button>
+                    <button type="button" class="avgBtn" data-rec-months="12">12ヶ月</button>
+                    <button type="button" class="avgBtn" data-rec-months="24">24ヶ月</button>
+                  </div>
 
                   <input id="recoveryMonths" inputmode="numeric" pattern="[0-9]*" placeholder="例：12" data-format="int" />
                   <div class="help">単発支出を、この期間で回収すると仮定して「月あたりの回収目標」を出します。</div>
@@ -527,7 +537,7 @@
         <a href="https://www.matsumoto-kaikei.or.jp/" target="_blank" rel="noopener license">税理士法人松本会計事務所</a> ｜ 
         <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="license noopener">CC BY-NC-SA 4.0</a> ｜ 
         <a href="/tool-portal/terms.html" target="_blank" rel="noopener">利用条件</a> ｜ 
-        <span id="build-rev">r6</span>（<span id="last-updated-date"></span>）
+        <span id="build-rev">r5</span>（<span id="last-updated-date"></span>）
       </footer>
 
     </div>
@@ -558,6 +568,19 @@
       volume: "https://takatrp.github.io/hendou_PL_LP/",
       auto:   "https://takatrp.github.io/jidouka-kouka-LP/"
     };
+
+    const TIME_UNIT_COST_URL = "https://takatrp.github.io/time-unit-cost/";
+
+    const INDUSTRY_AVG = [
+      { key:"all",   label:"全産業", value:43.6 },
+      { key:"fish",  label:"漁業",   value:64.6 },
+      { key:"const", label:"建設業", value:39.9 },
+      { key:"mfg",   label:"製造業", value:44.8 },
+      { key:"wh",    label:"卸売業", value:20.5 },
+      { key:"rt",    label:"小売業", value:32.0 },
+      { key:"hotel", label:"宿泊業", value:79.2 },
+      { key:"food",  label:"飲食業", value:64.1 },
+    ];
 
     const VOLUME_LABEL_SETS = {
       generic: {
@@ -631,8 +654,6 @@
         convHelp:"入口のうち、成約して出荷に至る割合（概算でOK）。"
       }
     };
-
-    const RECOVERY_PRESETS = [3, 6, 12, 24];
 
     const KEY = "mk_action_tool_v4";
     const $ = (id)=>document.getElementById(id);
@@ -752,35 +773,25 @@
       return VOLUME_LABEL_SETS[volumeLabelKey] || VOLUME_LABEL_SETS.generic;
     }
 
+    function setActiveAvg(key){
+      document.querySelectorAll(".avgBtn[data-avg-key]").forEach(b=>{
+        b.classList.toggle("active", b.dataset.avgKey === key);
+      });
+    }
     function getActiveAvgKey(){
       const a = document.querySelector(".avgBtn[data-avg-key].active");
       return a ? a.dataset.avgKey : "";
     }
 
-    function buildRecoveryChips(){
-      const grid = $("recoveryChipGrid");
-      if(!grid) return;
-      grid.innerHTML = "";
-      RECOVERY_PRESETS.forEach(m=>{
-        const b = document.createElement("button");
-        b.type = "button";
-        b.className = "avgBtn";
-        b.dataset.rec = String(m);
-        b.textContent = `${m}ヶ月`;
-        b.addEventListener("click", ()=>{
-          $("recoveryMonths").value = String(m);
-          formatIntInput($("recoveryMonths"));
-          setActiveRecovery(m);
-          render();
-          persist();
-        });
-        grid.appendChild(b);
+    function setActiveRecoveryChip(months){
+      document.querySelectorAll('[data-rec-months]').forEach(b=>{
+        b.classList.toggle("active", Number(b.dataset.recMonths) === Number(months));
       });
     }
-    function setActiveRecovery(m){
-      document.querySelectorAll('.avgBtn[data-rec]').forEach(b=>{
-        b.classList.toggle("active", Number(b.dataset.rec) === Number(m));
-      });
+    function syncRecoveryChipFromInput(){
+      const m = Math.round(num($("recoveryMonths").value));
+      const hit = [3,6,12,24].includes(m) ? m : 0;
+      setActiveRecoveryChip(hit);
     }
 
     function setSpendMode(mode){
@@ -796,12 +807,13 @@
       $("boxSpendYearly").style.display  = (mode==="yearly")  ? "" : "none";
       $("boxSpendOnce").style.display    = (mode==="once")    ? "" : "none";
 
+      // default recovery months when switching to once
       if(mode==="once"){
         if(!$("recoveryMonths").value){
           $("recoveryMonths").value = "12";
           formatIntInput($("recoveryMonths"));
         }
-        setActiveRecovery(num($("recoveryMonths").value) || 12);
+        syncRecoveryChipFromInput();
       }
 
       render();
@@ -861,6 +873,28 @@
         salesEqTargetM, salesEqAnnual, salesEqTotal,
         shareY, needPricePct
       };
+    }
+
+    function buildAvgChips(){
+      const grid = $("avgGrid");
+      if(!grid) return;
+      grid.innerHTML = "";
+      INDUSTRY_AVG.forEach(item=>{
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "avgBtn";
+        b.dataset.avgKey = item.key;
+        b.setAttribute("data-avg-key","1");
+        b.innerHTML = `<span class="lab">${item.label}</span><span>${item.value}%</span>`;
+        b.addEventListener("click", ()=>{
+          $("cmr").value = String(item.value);
+          formatDecimalInput($("cmr"));
+          setActiveAvg(item.key);
+          render();
+          persist();
+        });
+        grid.appendChild(b);
+      });
     }
 
     function buildVolumeLabelChips(container){
@@ -1025,16 +1059,15 @@
         $("detailSub").textContent   = "支出（単発は月割り）を“削減できる時間”に置き換えて、回収の目安を確認します。";
 
         inputA.innerHTML = `
-          <div class="avgWrap" style="margin-top:0;">
-            <div class="avgGrid">
-              <a class="avgBtn" href="https://takatrp.github.io/time-unit-cost/" target="_blank" rel="noopener noreferrer">時間単価の計算はこちら</a>
-            </div>
-          </div>
+          <label for="hourCostInput">時間単価（円 / 時）</label>
+          <input id="hourCostInput" inputmode="numeric" pattern="[0-9]*" placeholder="例：3,000" data-format="int" />
+          <div class="help">社内の実態に合わせた目安でOKです（概算）。</div>
 
-          <div style="margin-top:10px;">
-            <label for="hourCostInput">時間単価（円 / 時）</label>
-            <input id="hourCostInput" inputmode="numeric" pattern="[0-9]*" placeholder="例：3,000" data-format="int" />
-            <div class="help">社内の実態に合わせた目安でOKです（概算）。</div>
+          <div class="avgWrap" style="margin-top:10px;">
+            <div class="avgGrid">
+              <button type="button" class="avgBtn" id="btnTimeUnitCostModal">時間単価の計算はこちら</button>
+              <button type="button" class="avgBtn" id="btnTimeUnitCostNewTab">別タブで開く</button>
+            </div>
           </div>
         `;
         inputB.innerHTML = `
@@ -1056,6 +1089,22 @@
         $("detailHint").textContent = "『どの作業を削るか』『運用ルール』まで決めると、再現性が出ます。";
 
         bindLiveFormatting(document);
+
+        const btnT1 = $("btnTimeUnitCostModal");
+        const btnT2 = $("btnTimeUnitCostNewTab");
+        if(btnT1 && btnT1.dataset.bound !== "1"){
+          btnT1.dataset.bound = "1";
+          btnT1.addEventListener("click", ()=>{
+            openModal("時間単価の計算ツール", TIME_UNIT_COST_URL);
+          });
+        }
+        if(btnT2 && btnT2.dataset.bound !== "1"){
+          btnT2.dataset.bound = "1";
+          btnT2.addEventListener("click", ()=>{
+            window.open(TIME_UNIT_COST_URL, "_blank", "noopener,noreferrer");
+          });
+        }
+
         if($("hourCostInput")){
           $("hourCostInput").addEventListener("input", ()=>{
             updateRouteDetailKPIs();
@@ -1134,7 +1183,7 @@
       // once: monthly-equivalent spend
       if(spendMode==="once"){
         $("spendMonthlyEqAuto").value = (c.spendPerMonth>0) ? yen(c.spendPerMonth) : "";
-        setActiveRecovery(c.recoveryMonths);
+        syncRecoveryChipFromInput();
       }
 
       // KPI titles + values
@@ -1229,6 +1278,7 @@
       if(v.cmr!=null) $("cmr").value = v.cmr;
       if(v.annualSales!=null) $("annualSales").value = v.annualSales;
 
+      if(v.activeAvgKey) setActiveAvg(v.activeAvgKey);
       if(v.startDate!=null) $("startDate").value = v.startDate;
       if(v.targetScope!=null) $("targetScope").value = v.targetScope;
       if(v.checkKpi!=null) $("checkKpi").value = v.checkKpi;
@@ -1260,6 +1310,8 @@
       ["spendMonthly","spendYearly","spendOnce","recoveryMonths","cmr","annualSales","startDate","targetScope","checkKpi","freeMemo"].forEach(id=>$(id).value="");
       $("monthlySalesAuto").value = "";
       $("spendMonthlyEqAuto").value = "";
+      setActiveAvg("");
+      setActiveRecoveryChip(0);
       volumeLabelKey = "generic";
       setRoute("");
       localStorage.removeItem(KEY);
@@ -1268,8 +1320,20 @@
     }
 
     // init
-    buildRecoveryChips();
+    buildAvgChips();
     bindLiveFormatting(document);
+
+    // recovery chips
+    document.querySelectorAll('[data-rec-months]').forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        const m = Number(btn.dataset.recMonths);
+        $("recoveryMonths").value = String(m);
+        formatIntInput($("recoveryMonths"));
+        setActiveRecoveryChip(m);
+        render();
+      });
+    });
+    $("recoveryMonths").addEventListener("input", syncRecoveryChipFromInput);
 
     // spend mode handlers
     $("modeMonthly").addEventListener("click", ()=>setSpendMode("monthly"));
