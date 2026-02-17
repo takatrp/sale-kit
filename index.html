@@ -634,7 +634,7 @@
         <a href="https://www.matsumoto-kaikei.or.jp/" target="_blank" rel="noopener license">税理士法人松本会計事務所</a> ｜ 
         <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="license noopener">CC BY-NC-SA 4.0</a> ｜ 
         <a href="/tool-portal/terms.html" target="_blank" rel="noopener">利用条件</a> ｜ 
-        <span id="build-rev">r11</span>（<span id="last-updated-date"></span>）
+        <span id="build-rev">r12</span>（<span id="last-updated-date"></span>）
       </footer>
 
     </div>
@@ -744,6 +744,9 @@
     const KEY = "mk_action_tool_v4";
     const $ = (id)=>document.getElementById(id);
 
+    // URLパラメータから取得した単価を保持する変数
+    let importedUnitPrice = null;
+
     (function(){
       const yEl = document.getElementById("cpy-year");
       const dEl = document.getElementById("last-updated-date");
@@ -791,6 +794,12 @@
         el.textContent = "";
         el.classList.remove("show");
       }
+    }
+
+    function formatInt(val){
+      if(!val) return "";
+      const s = String(val).replace(/[^\d]/g, "");
+      return s.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     }
 
     function formatIntInput(el){
@@ -1122,6 +1131,9 @@
         $("detailTitle").textContent = "数量を上げる（深掘り）";
         $("detailSub").textContent   = "「取引単価×取引数」で、月あたり回収目標に必要な追加件数と入口数を揃えます。";
 
+        // URLパラメータで受け取った単価があれば初期値として使用
+        const initUnitPrice = importedUnitPrice ? formatInt(importedUnitPrice) : "";
+
         inputA.innerHTML = `
           <label>入力</label>
 
@@ -1135,7 +1147,7 @@
 
           <div style="margin-top:10px;">
             <label for="volumeUnitPrice">${L.unitPriceLabel}</label>
-            <input id="volumeUnitPrice" inputmode="numeric" pattern="[0-9]*" placeholder="例：12,000" data-format="int" />
+            <input id="volumeUnitPrice" inputmode="numeric" pattern="[0-9]*" placeholder="例：12,000" data-format="int" value="${initUnitPrice}" />
             <div class="help">${L.unitHelp}</div>
             <div class="err" id="volumeUnitPriceErr" aria-live="polite"></div>
           </div>
@@ -1487,191 +1499,6 @@
       persist();
     }
 
-    let currentUrl = "";
-    let lastFocusEl = null;
-    let modalOpen = false;
-
-    function getToolTitle(){
-      return selectedRoute==="price" ? "価格改定ツール" :
-             selectedRoute==="volume" ? "変動PLツール" :
-             selectedRoute==="auto" ? "自動化効果ツール" : "ツール";
-    }
-    function getToolUrl(){
-      return selectedRoute ? TOOL_URLS[selectedRoute] : "";
-    }
-    function getFocusable(root){
-      const sel = [
-        'button:not([disabled])',
-        'a[href]',
-        'input:not([disabled])',
-        'textarea:not([disabled])',
-        'select:not([disabled])',
-        '[tabindex]:not([tabindex="-1"])'
-      ].join(',');
-      return Array.from(root.querySelectorAll(sel)).filter(el=>{
-        const style = window.getComputedStyle(el);
-        return style.display !== "none" && style.visibility !== "hidden";
-      });
-    }
-    function openModal(title, url){
-      lastFocusEl = document.activeElement;
-      currentUrl = url;
-
-      $("modalTitle").innerHTML = `${title} <span>（同一画面）</span>`;
-
-      $("toolFrame").src = url;
-      $("modalBack").style.display = "flex";
-      document.body.style.overflow = "hidden";
-
-      modalOpen = true;
-
-      setTimeout(()=>{
-        try{ $("btnClose").focus(); }catch(e){}
-      }, 0);
-    }
-    function closeModal(){
-      $("modalBack").style.display = "none";
-      $("toolFrame").src = "about:blank";
-      currentUrl = "";
-      document.body.style.overflow = "";
-      modalOpen = false;
-
-      if(lastFocusEl && typeof lastFocusEl.focus === "function"){
-        try{ lastFocusEl.focus(); }catch(e){}
-      }
-      lastFocusEl = null;
-    }
-
-    document.addEventListener("keydown", (e)=>{
-      if(!modalOpen) return;
-      if(e.key === "Escape"){
-        e.preventDefault();
-        closeModal();
-        return;
-      }
-      if(e.key !== "Tab") return;
-
-      const focusables = getFocusable(document.querySelector("#modalBack .modal"));
-      if(focusables.length === 0) return;
-
-      const first = focusables[0];
-      const last  = focusables[focusables.length - 1];
-      const active = document.activeElement;
-
-      if(e.shiftKey){
-        if(active === first || !focusables.includes(active)){
-          e.preventDefault();
-          last.focus();
-        }
-      }else{
-        if(active === last){
-          e.preventDefault();
-          first.focus();
-        }
-      }
-    }, true);
-
-    function getState(){
-      return {
-        spendMode,
-        spendMonthly: $("spendMonthly").value,
-        spendYearly: $("spendYearly").value,
-        spendOnce: $("spendOnce").value,
-        recoveryMonths: $("recoveryMonths").value,
-        cmr: $("cmr").value,
-        annualSales: $("annualSales").value,
-        selectedRoute,
-        // r8 updates
-        targetScope: $("targetScope").value,
-        checkKpi: $("checkKpi").value,
-        targetGoal: $("targetGoal").value,
-        firstAction: $("firstAction").value,
-        stopDoing: $("stopDoing").value,
-        nextCheck: $("nextCheck").value,
-        freeMemo: $("freeMemo").value,
-        
-        volumeLabelKey,
-        volumeUnitPrice: $("volumeUnitPrice") ? $("volumeUnitPrice").value : "",
-        volumeConvRate: $("volumeConvRate") ? $("volumeConvRate").value : "",
-        volumeDays: $("volumeDays") ? $("volumeDays").value : "",
-        hourCost: $("hourCostInput") ? $("hourCostInput").value : "",
-        foldTalkOpen: $("foldTalk") ? $("foldTalk").open : false
-      };
-    }
-    function persist(){ save(getState()); }
-
-    function restore(v){
-      if(v.spendMode) setSpendMode(v.spendMode);
-      if(v.spendMonthly!=null) $("spendMonthly").value = v.spendMonthly;
-      if(v.spendYearly!=null) $("spendYearly").value = v.spendYearly;
-      if(v.spendOnce!=null) $("spendOnce").value = v.spendOnce;
-      if(v.recoveryMonths!=null) $("recoveryMonths").value = v.recoveryMonths;
-
-      if(v.cmr!=null) $("cmr").value = v.cmr;
-      if(v.annualSales!=null) $("annualSales").value = v.annualSales;
-
-      // r8 updates
-      if(v.targetScope!=null) $("targetScope").value = v.targetScope;
-      if(v.checkKpi!=null) $("checkKpi").value = v.checkKpi;
-      if(v.targetGoal!=null) $("targetGoal").value = v.targetGoal;
-      if(v.firstAction!=null) $("firstAction").value = v.firstAction;
-      if(v.stopDoing!=null) $("stopDoing").value = v.stopDoing;
-      if(v.nextCheck!=null) $("nextCheck").value = v.nextCheck;
-      if(v.freeMemo!=null) $("freeMemo").value = v.freeMemo;
-
-      if(v.volumeLabelKey) volumeLabelKey = v.volumeLabelKey;
-
-      if($("foldTalk") && typeof v.foldTalkOpen === "boolean"){
-        $("foldTalk").open = v.foldTalkOpen;
-      }
-
-      if(v.selectedRoute==="price" || v.selectedRoute==="volume" || v.selectedRoute==="auto"){
-        setRoute(v.selectedRoute);
-        setTimeout(()=>{
-          if($("volumeUnitPrice") && v.volumeUnitPrice!=null) $("volumeUnitPrice").value = v.volumeUnitPrice;
-          if($("volumeConvRate") && v.volumeConvRate!=null) $("volumeConvRate").value = v.volumeConvRate;
-          if($("volumeDays") && v.volumeDays!=null) $("volumeDays").value = v.volumeDays;
-          if($("hourCostInput") && v.hourCost!=null) $("hourCostInput").value = v.hourCost;
-
-          bindLiveFormatting(document);
-          document.querySelectorAll('input[data-format="int"]').forEach(formatIntInput);
-          document.querySelectorAll('input[data-format="decimal"]').forEach(formatDecimalInput);
-
-          render();
-        }, 0);
-      }else{
-        setRoute("");
-      }
-    }
-
-    function doReset(){
-      if(!confirm("入力内容をすべてリセットしますか？\n（この操作は取り消せません）")){
-        return;
-      }
-
-      spendMode = "monthly";
-      [
-        "spendMonthly","spendYearly","spendOnce","recoveryMonths",
-        "cmr","annualSales",
-        "targetScope","checkKpi","targetGoal","firstAction","stopDoing","nextCheck","freeMemo"
-      ].forEach(id=>{ if($(id)) $(id).value=""; });
-      
-      $("monthlySalesAuto").value = "";
-      $("spendMonthlyEqAuto").value = "";
-
-      showErr("cmrErr", "");
-      showErr("spendMonthlyErr", "");
-      showErr("spendYearlyErr", "");
-      showErr("spendOnceErr", "");
-      showErr("recoveryErr", "");
-
-      volumeLabelKey = "generic";
-      setRoute("");
-      localStorage.removeItem(KEY);
-      setSpendMode("monthly");
-      render();
-    }
-
     // ▼ 追加：URLパラメータから値を受け取る処理
     function checkUrlParams(){
       const params = new URLSearchParams(window.location.search);
@@ -1679,6 +1506,7 @@
       const p_cmr = params.get('cmr');         // 限界利益率
       const p_sales = params.get('sales');     // 年商
       const p_mode = params.get('mode');       // 頻度 (monthly, yearly, once)
+      const p_unit = params.get('unit_price'); // 平均単価 (convert-to-sales用)
 
       let changed = false;
 
@@ -1707,6 +1535,11 @@
       if(p_sales){
         $("annualSales").value = normalizeDecimalText(p_sales);
         changed = true;
+      }
+
+      // 平均単価 (Step 2で使うため変数に保持)
+      if(p_unit){
+        importedUnitPrice = normalizeDecimalText(p_unit);
       }
 
       if(changed){
