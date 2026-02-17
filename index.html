@@ -221,6 +221,7 @@
       text-align:center;
       transition:all .2s ease;
       position:relative;
+      cursor:pointer;
     }
     .bigCard:hover{
       border-color:var(--brand);
@@ -514,7 +515,7 @@
         </details>
 
         <div id="routeChooser" class="chooser" aria-label="打ち手の選択">
-          <div class="bigCard" onclick="document.querySelector('[data-pick=price]').click()">
+          <div class="bigCard" data-target="price">
             <div class="bigCardIcon">💎</div>
             <div class="grow">
               <h3>単価を上げる</h3>
@@ -523,7 +524,7 @@
             <button class="btn primary" data-pick="price">この方向で深掘り</button>
           </div>
 
-          <div class="bigCard" onclick="document.querySelector('[data-pick=volume]').click()">
+          <div class="bigCard" data-target="volume">
             <div class="bigCardIcon">📦</div>
             <div class="grow">
               <h3>数量を上げる</h3>
@@ -532,7 +533,7 @@
             <button class="btn primary" data-pick="volume">この方向で深掘り</button>
           </div>
 
-          <div class="bigCard" onclick="document.querySelector('[data-pick=auto]').click()">
+          <div class="bigCard" data-target="auto">
             <div class="bigCardIcon">⚙️</div>
             <div class="grow">
               <h3>業務プロセスを自動化</h3>
@@ -634,7 +635,7 @@
         <a href="https://www.matsumoto-kaikei.or.jp/" target="_blank" rel="noopener license">税理士法人松本会計事務所</a> ｜ 
         <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="license noopener">CC BY-NC-SA 4.0</a> ｜ 
         <a href="/tool-portal/terms.html" target="_blank" rel="noopener">利用条件</a> ｜ 
-        <span id="build-rev">r12</span>（<span id="last-updated-date"></span>）
+        <span id="build-rev">r13</span>（<span id="last-updated-date"></span>）
       </footer>
 
     </div>
@@ -803,6 +804,7 @@
     }
 
     function formatIntInput(el){
+      if(!el) return; // 修正: nullチェック追加
       const raw = String(el.value ?? "");
       const caret = (el.selectionStart ?? raw.length);
       const digitsBefore = raw.slice(0, caret).replace(/[^\d]/g, "").length;
@@ -826,6 +828,7 @@
     }
 
     function formatDecimalInput(el){
+      if(!el) return; // 修正: nullチェック追加
       const raw = String(el.value ?? "");
       const caret = (el.selectionStart ?? raw.length);
       let normalized = raw.replace(/[,，\s]/g,'').replace(/[・]/g,'.');
@@ -1560,6 +1563,21 @@
         window.history.replaceState({}, '', url);
       }
     }
+
+    // ★重要: HTMLのonclick属性を廃止し、JSでクリックイベントを設定 (修正r13)
+    document.querySelectorAll('.bigCard').forEach(card => {
+      card.addEventListener('click', (e) => {
+        // ボタン自体をクリックした場合は何もしない（ボタンのイベントに任せる）
+        if(e.target.tagName === 'BUTTON') return;
+        
+        // カードの data-target 属性を取得してルート設定
+        const target = card.getAttribute('data-target');
+        if(target){
+          setRoute(target);
+          render();
+        }
+      });
+    });
 
     bindLiveFormatting(document);
     buildRecoveryChips();
