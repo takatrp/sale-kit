@@ -201,7 +201,6 @@
     .avgBtn.active{border-color:rgba(87,136,153,.65); background:rgba(87,136,153,.12)}
     .avgBtn[aria-pressed="true"]{border-color:rgba(87,136,153,.75); background:rgba(87,136,153,.14)}
 
-    /* Modified Chooser Styles (r10) */
     .chooser{
       margin-top:16px;
       display:grid;
@@ -635,7 +634,7 @@
         <a href="https://www.matsumoto-kaikei.or.jp/" target="_blank" rel="noopener license">税理士法人松本会計事務所</a> ｜ 
         <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="license noopener">CC BY-NC-SA 4.0</a> ｜ 
         <a href="/tool-portal/terms.html" target="_blank" rel="noopener">利用条件</a> ｜ 
-        <span id="build-rev">r10</span>（<span id="last-updated-date"></span>）
+        <span id="build-rev">r11</span>（<span id="last-updated-date"></span>）
       </footer>
 
     </div>
@@ -1673,6 +1672,62 @@
       render();
     }
 
+    // ▼ 追加：URLパラメータから値を受け取る処理
+    function checkUrlParams(){
+      const params = new URLSearchParams(window.location.search);
+      const p_spend = params.get('spend');     // 支出額
+      const p_cmr = params.get('cmr');         // 限界利益率
+      const p_sales = params.get('sales');     // 年商
+      const p_mode = params.get('mode');       // 頻度 (monthly, yearly, once)
+
+      let changed = false;
+
+      // モード指定があれば切り替え
+      if(p_mode && ["monthly","yearly","once"].includes(p_mode)){
+        setSpendMode(p_mode);
+        changed = true;
+      }
+
+      // 支出額
+      if(p_spend){
+        const v = normalizeDecimalText(p_spend);
+        if(spendMode === "monthly") $("spendMonthly").value = v;
+        if(spendMode === "yearly")  $("spendYearly").value = v;
+        if(spendMode === "once")    $("spendOnce").value = v;
+        changed = true;
+      }
+
+      // 限界利益率
+      if(p_cmr){
+        $("cmr").value = normalizeDecimalText(p_cmr);
+        changed = true;
+      }
+
+      // 年商
+      if(p_sales){
+        $("annualSales").value = normalizeDecimalText(p_sales);
+        changed = true;
+      }
+
+      if(changed){
+        // フォーマット整形と再計算を実行
+        bindLiveFormatting(document);
+        document.querySelectorAll('input[data-format="int"]').forEach(formatIntInput);
+        document.querySelectorAll('input[data-format="decimal"]').forEach(formatDecimalInput);
+        
+        // Step1を開いた状態で見せるためにスクロール位置調整（任意）
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        
+        render();
+        persist(); // 保存して、リロードしても消えないようにする
+        
+        // URLからパラメータを消す（リフレッシュ時の誤動作防止：任意）
+        const url = new URL(window.location);
+        url.search = "";
+        window.history.replaceState({}, '', url);
+      }
+    }
+
     bindLiveFormatting(document);
     buildRecoveryChips();
 
@@ -1812,6 +1867,9 @@ ${routeDetail ? routeDetail : ""}
 
     $("btnReset").addEventListener("click", doReset);
     $("btnResetTop").addEventListener("click", doReset);
+
+    // 起動時にURLチェック
+    checkUrlParams();
 
     render();
   </script>
