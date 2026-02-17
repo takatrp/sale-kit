@@ -635,7 +635,7 @@
         <a href="https://www.matsumoto-kaikei.or.jp/" target="_blank" rel="noopener license">税理士法人松本会計事務所</a> ｜ 
         <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="license noopener">CC BY-NC-SA 4.0</a> ｜ 
         <a href="/tool-portal/terms.html" target="_blank" rel="noopener">利用条件</a> ｜ 
-        <span id="build-rev">r14</span>（<span id="last-updated-date"></span>）
+        <span id="build-rev">r15</span>（<span id="last-updated-date"></span>）
       </footer>
 
     </div>
@@ -745,12 +745,18 @@
     const KEY = "mk_action_tool_v4";
     const $ = (id)=>document.getElementById(id);
 
-    // URLパラメータから取得した単価を保持する変数
+    // URLパラメータから取得した単価を保持する変数（数値 or null）
     let importedUnitPrice = null;
 
+    // 復元中フラグ（復元中に persist 乱発しない）
+    let IS_RESTORING = false;
+
+    // modal
+    let currentUrl = "";
+
     (function(){
-      const yEl = document.getElementById("cpy-year");
-      const dEl = document.getElementById("last-updated-date");
+      const yEl = $("cpy-year");
+      const dEl = $("last-updated-date");
       const now = new Date();
       if (yEl) yEl.textContent = String(now.getFullYear());
       if (dEl) {
@@ -798,13 +804,14 @@
     }
 
     function formatInt(val){
-      if(!val) return "";
+      if(val === null || val === undefined) return "";
       const s = String(val).replace(/[^\d]/g, "");
+      if(!s) return "";
       return s.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     }
 
     function formatIntInput(el){
-      if(!el) return; 
+      if(!el) return;
       const raw = String(el.value ?? "");
       const caret = (el.selectionStart ?? raw.length);
       const digitsBefore = raw.slice(0, caret).replace(/[^\d]/g, "").length;
@@ -828,7 +835,7 @@
     }
 
     function formatDecimalInput(el){
-      if(!el) return; 
+      if(!el) return;
       const raw = String(el.value ?? "");
       const caret = (el.selectionStart ?? raw.length);
       let normalized = raw.replace(/[,，\s]/g,'').replace(/[・]/g,'.');
@@ -867,6 +874,104 @@
     }
     function save(state){
       try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){}
+    }
+
+    function persist(){
+      if(IS_RESTORING) return;
+      const state = {
+        spendMode,
+        selectedRoute,
+        detailBuiltFor,
+        volumeLabelKey,
+        importedUnitPrice,
+        fields: {
+          spendMonthly: $("spendMonthly")?.value ?? "",
+          spendYearly: $("spendYearly")?.value ?? "",
+          spendOnce: $("spendOnce")?.value ?? "",
+          recoveryMonths: $("recoveryMonths")?.value ?? "",
+          cmr: $("cmr")?.value ?? "",
+          annualSales: $("annualSales")?.value ?? "",
+
+          // route detail inputs（存在すれば）
+          volumeUnitPrice: $("volumeUnitPrice")?.value ?? "",
+          volumeConvRate: $("volumeConvRate")?.value ?? "",
+          volumeDays: $("volumeDays")?.value ?? "",
+          hourCostInput: $("hourCostInput")?.value ?? "",
+
+          // Step3
+          targetScope: $("targetScope")?.value ?? "",
+          targetGoal: $("targetGoal")?.value ?? "",
+          checkKpi: $("checkKpi")?.value ?? "",
+          firstAction: $("firstAction")?.value ?? "",
+          stopDoing: $("stopDoing")?.value ?? "",
+          nextCheck: $("nextCheck")?.value ?? "",
+          freeMemo: $("freeMemo")?.value ?? ""
+        }
+      };
+      save(state);
+    }
+
+    function restore(st){
+      if(!st || typeof st !== "object") return;
+
+      IS_RESTORING = true;
+
+      // 1) globals
+      if(st.volumeLabelKey && VOLUME_LABEL_SETS[st.volumeLabelKey]) volumeLabelKey = st.volumeLabelKey;
+      if(st.importedUnitPrice !== undefined) importedUnitPrice = st.importedUnitPrice;
+
+      // 2) spend mode first（UI切替があるので先に）
+      if(st.spendMode && ["monthly","yearly","once"].includes(st.spendMode)){
+        setSpendMode(st.spendMode);
+      }else{
+        setSpendMode("monthly");
+      }
+
+      // 3) inputs
+      const f = st.fields || {};
+      if($("spendMonthly")) $("spendMonthly").value = f.spendMonthly ?? "";
+      if($("spendYearly"))  $("spendYearly").value  = f.spendYearly ?? "";
+      if($("spendOnce"))    $("spendOnce").value    = f.spendOnce ?? "";
+      if($("recoveryMonths")) $("recoveryMonths").value = f.recoveryMonths ?? "";
+      if($("cmr")) $("cmr").value = f.cmr ?? "";
+      if($("annualSales")) $("annualSales").value = f.annualSales ?? "";
+
+      if($("targetScope")) $("targetScope").value = f.targetScope ?? "";
+      if($("targetGoal"))  $("targetGoal").value  = f.targetGoal ?? "";
+      if($("checkKpi"))    $("checkKpi").value    = f.checkKpi ?? "";
+      if($("firstAction")) $("firstAction").value = f.firstAction ?? "";
+      if($("stopDoing"))   $("stopDoing").value   = f.stopDoing ?? "";
+      if($("nextCheck"))   $("nextCheck").value   = f.nextCheck ?? "";
+      if($("freeMemo"))    $("freeMemo").value    = f.freeMemo ?? "";
+
+      // formatting
+      bindLiveFormatting(document);
+      document.querySelectorAll('input[data-format="int"]').forEach(formatIntInput);
+      document.querySelectorAll('input[data-format="decimal"]').forEach(formatDecimalInput);
+      syncRecoveryChipsFromInput();
+
+      // 4) route（最後に）
+      if(st.selectedRoute && ["price","volume","auto"].includes(st.selectedRoute)){
+        setRoute(st.selectedRoute);
+        // route inputs restore
+        setTimeout(()=>{
+          if($("volumeUnitPrice") && (f.volumeUnitPrice ?? "") !== "") $("volumeUnitPrice").value = f.volumeUnitPrice;
+          if($("volumeConvRate")  && (f.volumeConvRate ?? "") !== "")  $("volumeConvRate").value  = f.volumeConvRate;
+          if($("volumeDays")      && (f.volumeDays ?? "") !== "")      $("volumeDays").value      = f.volumeDays;
+
+          if($("hourCostInput") && (f.hourCostInput ?? "") !== "") $("hourCostInput").value = f.hourCostInput;
+
+          bindLiveFormatting(document);
+          document.querySelectorAll('input[data-format="int"]').forEach(formatIntInput);
+          document.querySelectorAll('input[data-format="decimal"]').forEach(formatDecimalInput);
+
+          updateRouteDetailKPIs();
+        }, 0);
+      }else{
+        setRoute("");
+      }
+
+      IS_RESTORING = false;
     }
 
     let selectedRoute = "";
@@ -1072,6 +1177,7 @@
       showErr("spendMonthlyErr", "");
       showErr("spendYearlyErr", "");
       showErr("spendOnceErr", "");
+
       if(spendMode==="monthly"){
         const raw = String($("spendMonthly").value ?? "").trim();
         if(raw !== "" && c.spendM <= 0) showErr("spendMonthlyErr", "支出額は 0 より大きい数値で入力してください。");
@@ -1134,8 +1240,10 @@
         $("detailTitle").textContent = "数量を上げる（深掘り）";
         $("detailSub").textContent   = "「取引単価×取引数」で、月あたり回収目標に必要な追加件数と入口数を揃えます。";
 
-        // URLパラメータで受け取った単価があれば初期値として使用
-        const initUnitPrice = importedUnitPrice ? formatInt(importedUnitPrice) : "";
+        // URLパラメータで受け取った単価があれば初期値として使用（0 も許容するなら !== null 判定）
+        const initUnitPrice = (importedUnitPrice !== null && importedUnitPrice !== undefined)
+          ? formatInt(importedUnitPrice)
+          : "";
 
         inputA.innerHTML = `
           <label>入力</label>
@@ -1488,7 +1596,7 @@
         $("shareY").classList.add("small");
       }
 
-      $("selectedRouteLabel").value = 
+      $("selectedRouteLabel").value =
         selectedRoute==="price" ? "単価を上げる" :
         selectedRoute==="volume" ? "数量を上げる" :
         selectedRoute==="auto" ? "業務プロセスを自動化（時間創出）" :
@@ -1502,79 +1610,159 @@
       persist();
     }
 
-    // ▼ 追加：URLパラメータから値を受け取る処理
+    // ▼ URLパラメータから値を受け取る処理（完全版）
+    // 例：
+    // ?mode=monthly&spend=123456&cmr=78.0&unit_price=1234
+    // 任意：sales=120000000 / recovery=12 / route=volume
     function checkUrlParams(){
       const params = new URLSearchParams(window.location.search);
-      const p_spend = params.get('spend');     // 支出額
-      const p_cmr = params.get('cmr');         // 限界利益率
-      const p_sales = params.get('sales');     // 年商
-      const p_mode = params.get('mode');       // 頻度 (monthly, yearly, once)
-      const p_unit = params.get('unit_price'); // 平均単価 (convert-to-sales用)
+      if(!params || [...params.keys()].length === 0) return;
+
+      const p_mode     = params.get("mode");        // monthly | yearly | once
+      const p_spend    = params.get("spend");       // 支出額
+      const p_cmr      = params.get("cmr");         // 限界利益率(%)
+      const p_sales    = params.get("sales") ?? params.get("annual_sales"); // 年商（任意）
+      const p_recovery = params.get("recovery");    // 回収期間（月）※once用（任意）
+      const p_unit     = params.get("unit_price");  // 単価（Step2:数量）
+      const p_route    = params.get("route");       // price | volume | auto（任意）
 
       let changed = false;
 
-      // モード指定があれば切り替え
+      // ① モード
       if(p_mode && ["monthly","yearly","once"].includes(p_mode)){
         setSpendMode(p_mode);
         changed = true;
       }
 
-      // 支出額
-      if(p_spend){
-        const v = normalizeDecimalText(p_spend); // まず数値を正規化
-        // ★重要: formatIntを通してからセットすることで、正しいフォーマット（カンマ区切り）にする
-        const fmtV = formatInt(v);
-        
-        if(spendMode === "monthly") $("spendMonthly").value = fmtV;
-        if(spendMode === "yearly")  $("spendYearly").value = fmtV;
-        if(spendMode === "once")    $("spendOnce").value = fmtV;
-        changed = true;
+      // ② 支出額（mode に応じて入れる）
+      if(p_spend !== null && String(p_spend).trim() !== ""){
+        const v = num(p_spend);
+        if(v > 0){
+          const fmtV = formatInt(v);
+          if(spendMode === "monthly") $("spendMonthly").value = fmtV;
+          if(spendMode === "yearly")  $("spendYearly").value  = fmtV;
+          if(spendMode === "once")    $("spendOnce").value    = fmtV;
+          changed = true;
+        }
       }
 
-      // 限界利益率
-      if(p_cmr){
+      // ③ 限界利益率
+      if(p_cmr !== null && String(p_cmr).trim() !== ""){
         $("cmr").value = normalizeDecimalText(p_cmr);
         changed = true;
       }
 
-      // 年商
-      if(p_sales){
-        const v = normalizeDecimalText(p_sales);
-        $("annualSales").value = formatInt(v); // ★ここもフォーマット
+      // ④ 年商（任意）
+      if(p_sales !== null && String(p_sales).trim() !== ""){
+        const v = num(p_sales);
+        if(v > 0){
+          $("annualSales").value = formatInt(v);
+          changed = true;
+        }
+      }
+
+      // ⑤ 単発の回収期間（任意）
+      if(p_recovery !== null && String(p_recovery).trim() !== ""){
+        const v = num(p_recovery);
+        if(v >= 1){
+          $("recoveryMonths").value = formatInt(v);
+          syncRecoveryChipsFromInput();
+          changed = true;
+        }
+      }
+
+      // ⑥ Step2(数量) の単価：数値として保持（falsy罠回避）
+      if(p_unit !== null && String(p_unit).trim() !== ""){
+        const v = num(p_unit);
+        importedUnitPrice = v; // ★数値で保持
+        // もし既に volume 入力欄が出ているなら即反映
+        if($("volumeUnitPrice")){
+          $("volumeUnitPrice").value = formatInt(v);
+          formatIntInput($("volumeUnitPrice"));
+        }
         changed = true;
       }
 
-      // 平均単価 (Step 2で使うため変数に保持)
-      if(p_unit){
-        importedUnitPrice = normalizeDecimalText(p_unit);
+      // ⑦ 任意：route を指定されたら、その深掘りを開く
+      if(p_route && ["price","volume","auto"].includes(p_route)){
+        setRoute(p_route);
+        changed = true;
       }
 
       if(changed){
-        // フォーマット整形と再計算を実行
         bindLiveFormatting(document);
         document.querySelectorAll('input[data-format="int"]').forEach(formatIntInput);
         document.querySelectorAll('input[data-format="decimal"]').forEach(formatDecimalInput);
-        
-        // Step1を開いた状態で見せるためにスクロール位置調整（任意）
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        
+
         render();
-        persist(); // 保存して、リロードしても消えないようにする
-        
-        // URLからパラメータを消す（リフレッシュ時の誤動作防止：任意）
-        const url = new URL(window.location);
+        persist();
+
+        // URLからパラメータを消す（共有リンクを開いた側の履歴を綺麗にする）
+        const url = new URL(window.location.href);
         url.search = "";
-        window.history.replaceState({}, '', url);
+        window.history.replaceState({}, "", url);
       }
     }
 
-    // ★重要: HTMLのonclick属性を廃止し、JSでクリックイベントを設定 (修正r13)
+    // modal helpers
+    function openModal(title, url){
+      currentUrl = url || "";
+      $("modalTitle").innerHTML = `${title || "ツールを表示"} <span>（同一画面）</span>`;
+      $("toolFrame").src = currentUrl;
+      $("modalBack").style.display = "flex";
+    }
+    function closeModal(){
+      $("modalBack").style.display = "none";
+      $("toolFrame").src = "about:blank";
+      currentUrl = "";
+    }
+    function getToolUrl(){
+      return selectedRoute ? (TOOL_URLS[selectedRoute] || "") : "";
+    }
+    function getToolTitle(){
+      return selectedRoute==="price" ? "単価を上げる（関連ツール）"
+           : selectedRoute==="volume" ? "数量を上げる（関連ツール）"
+           : selectedRoute==="auto" ? "自動化効果（関連ツール）"
+           : "関連ツール";
+    }
+
+    function doReset(){
+      const ok = confirm("入力内容をすべてリセットしますか？（この端末に保存された内容も消えます）");
+      if(!ok) return;
+
+      try{ localStorage.removeItem(KEY); }catch(e){}
+
+      importedUnitPrice = null;
+      volumeLabelKey = "generic";
+      detailBuiltFor = "";
+
+      // clear inputs
+      [
+        "spendMonthly","spendYearly","spendOnce","recoveryMonths","cmr","annualSales",
+        "targetScope","checkKpi","targetGoal","firstAction","stopDoing","nextCheck","freeMemo"
+      ].forEach(id=>{
+        if($(id)) $(id).value = "";
+      });
+
+      // clear errors
+      ["spendMonthlyErr","spendYearlyErr","spendOnceErr","recoveryErr","cmrErr"].forEach(id=>showErr(id, ""));
+
+      closeModal();
+
+      setRoute("");
+      setSpendMode("monthly");
+
+      bindLiveFormatting(document);
+      document.querySelectorAll('input[data-format="int"]').forEach(formatIntInput);
+      document.querySelectorAll('input[data-format="decimal"]').forEach(formatDecimalInput);
+
+      render();
+    }
+
+    // 起動時UI：カードクリック（ボタン以外）
     document.querySelectorAll('.bigCard').forEach(card => {
       card.addEventListener('click', (e) => {
-        // ボタン自体をクリックした場合は何もしない（ボタンのイベントに任せる）
         if(e.target.tagName === 'BUTTON') return;
-        
-        // カードの data-target 属性を取得してルート設定
         const target = card.getAttribute('data-target');
         if(target){
           setRoute(target);
@@ -1583,6 +1771,7 @@
       });
     });
 
+    // init
     bindLiveFormatting(document);
     buildRecoveryChips();
 
@@ -1590,8 +1779,10 @@
     $("modeYearly").addEventListener("click",  ()=>setSpendMode("yearly"));
     $("modeOnce").addEventListener("click",    ()=>setSpendMode("once"));
 
+    // まずデフォルトをセット（restore が上書きする）
     setSpendMode("monthly");
 
+    // restore（端末保存）
     const st = load();
     restore(st);
 
@@ -1599,7 +1790,7 @@
     document.querySelectorAll('input[data-format="int"]').forEach(formatIntInput);
     document.querySelectorAll('input[data-format="decimal"]').forEach(formatDecimalInput);
 
-    // Watch all inputs for Step 3 persistence
+    // Watch inputs
     [
       "spendMonthly","spendYearly","spendOnce","recoveryMonths","cmr","annualSales",
       "targetScope","checkKpi","targetGoal","firstAction","stopDoing","nextCheck","freeMemo"
@@ -1631,6 +1822,7 @@
       if(!url){ alert("ツールURLが未設定です。"); return; }
       window.open(url, "_blank", "noopener,noreferrer");
     });
+
     $("btnClose").addEventListener("click", closeModal);
     $("modalBack").addEventListener("click", (e)=>{ if(e.target === $("modalBack")) closeModal(); });
     $("btnOpenNewTab2").addEventListener("click", ()=>{ if(currentUrl) window.open(currentUrl, "_blank", "noopener,noreferrer"); });
@@ -1639,7 +1831,7 @@
 
     $("btnCopy").addEventListener("click", async ()=>{
       const c = compute();
-      const routeLabel = 
+      const routeLabel =
         selectedRoute==="price" ? "単価を上げる" :
         selectedRoute==="volume" ? "数量を上げる" :
         selectedRoute==="auto" ? "業務プロセスを自動化する" :
@@ -1676,7 +1868,7 @@
         const needTxM = (unitPrice>0 && Number.isFinite(c.salesEqTargetM)) ? (c.salesEqTargetM / unitPrice) : NaN;
         const needEntryM = (convRate>0 && convRate<=100 && Number.isFinite(needTxM)) ? (needTxM / (convRate/100)) : NaN;
 
-        routeDetail = 
+        routeDetail =
 `・${L.unitPriceLabel}：${unitPrice?yen(unitPrice):"—"}
 ・${L.convLabel}：${$("volumeConvRate") && $("volumeConvRate").value ? ($("volumeConvRate").value+"%") : "—"}
 ・必要な追加${L.txName}数：${Number.isFinite(needTxM)?(ceil1(needTxM)+" "+L.unitShort+"/月"):"—"}
@@ -1688,7 +1880,7 @@
         routeDetail = `・時間単価：${hour?yen(hour):"—"}／回収に必要な削減時間：${Number.isFinite(needHours)?(ceil1(needHours)+" h/月"):"—"}`;
       }
 
-      const text = 
+      const text =
 `【打ち手検討（概算）】
 ■1. 売上換算
 ${spendLine}
@@ -1723,7 +1915,7 @@ ${routeDetail ? routeDetail : ""}
     $("btnReset").addEventListener("click", doReset);
     $("btnResetTop").addEventListener("click", doReset);
 
-    // 起動時にURLチェック
+    // ★起動時にURLチェック（ローカル復元の後に上書き）
     checkUrlParams();
 
     render();
