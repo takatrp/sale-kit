@@ -201,26 +201,43 @@
     .avgBtn.active{border-color:rgba(87,136,153,.65); background:rgba(87,136,153,.12)}
     .avgBtn[aria-pressed="true"]{border-color:rgba(87,136,153,.75); background:rgba(87,136,153,.14)}
 
+    /* Modified Chooser Styles (r10) */
     .chooser{
-      margin-top:12px;
+      margin-top:16px;
       display:grid;
       grid-template-columns:1fr 1fr 1fr;
-      gap:12px;
+      gap:16px;
     }
     @media (max-width:900px){ .chooser{grid-template-columns:1fr} }
     .bigCard{
-      border:1px solid rgba(23,50,58,.12);
-      border-radius:16px;
-      padding:14px;
+      border:2px solid rgba(87,136,153,.15);
+      border-radius:20px;
+      padding:20px;
       background:#fff;
       display:flex;
       flex-direction:column;
-      gap:10px;
-      min-height:140px;
+      gap:12px;
+      min-height:180px;
+      align-items:center;
+      text-align:center;
+      transition:all .2s ease;
+      position:relative;
     }
-    .bigCard h3{margin:0; font-size:16px}
-    .bigCard p{margin:0; color:var(--muted); font-size:12px}
-    .bigCard .grow{flex:1}
+    .bigCard:hover{
+      border-color:var(--brand);
+      background:rgba(87,136,153,.02);
+      transform:translateY(-4px);
+      box-shadow:0 12px 30px rgba(87,136,153,.15);
+    }
+    .bigCardIcon{
+      font-size:38px;
+      line-height:1;
+      margin-bottom:4px;
+    }
+    .bigCard h3{margin:0; font-size:17px; font-weight:900}
+    .bigCard p{margin:0; color:var(--muted); font-size:12px; line-height:1.5}
+    .bigCard .grow{flex:1; width:100%}
+    .bigCard .btn{width:100%; margin-top:8px;}
 
     .detail{
       margin-top:12px;
@@ -498,7 +515,8 @@
         </details>
 
         <div id="routeChooser" class="chooser" aria-label="打ち手の選択">
-          <div class="bigCard">
+          <div class="bigCard" onclick="document.querySelector('[data-pick=price]').click()">
+            <div class="bigCardIcon">💎</div>
             <div class="grow">
               <h3>単価を上げる</h3>
               <p>価格・値付け・客層・提供価値の見直しで、同じ労力で利益を増やす方向です。</p>
@@ -506,17 +524,19 @@
             <button class="btn primary" data-pick="price">この方向で深掘り</button>
           </div>
 
-          <div class="bigCard">
+          <div class="bigCard" onclick="document.querySelector('[data-pick=volume]').click()">
+            <div class="bigCardIcon">📦</div>
             <div class="grow">
               <h3>数量を上げる</h3>
-              <p>「取引単価×取引数」の整理で、必要な追加件数と入口数を数字で見える化します（業種共通）。</p>
+              <p>「取引単価×取引数」の整理で、必要な追加件数と入口数を数字で見える化します。</p>
             </div>
             <button class="btn primary" data-pick="volume">この方向で深掘り</button>
           </div>
 
-          <div class="bigCard">
+          <div class="bigCard" onclick="document.querySelector('[data-pick=auto]').click()">
+            <div class="bigCardIcon">⚙️</div>
             <div class="grow">
-              <h3>業務プロセスを自動化（時間創出）</h3>
+              <h3>業務プロセスを自動化</h3>
               <p>時間を作り、その時間で付加価値活動へ移す方向です（回収に必要な削減時間の目安が出ます）。</p>
             </div>
             <button class="btn primary" data-pick="auto">この方向で深掘り</button>
@@ -615,7 +635,7 @@
         <a href="https://www.matsumoto-kaikei.or.jp/" target="_blank" rel="noopener license">税理士法人松本会計事務所</a> ｜ 
         <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="license noopener">CC BY-NC-SA 4.0</a> ｜ 
         <a href="/tool-portal/terms.html" target="_blank" rel="noopener">利用条件</a> ｜ 
-        <span id="build-rev">r9</span>（<span id="last-updated-date"></span>）
+        <span id="build-rev">r10</span>（<span id="last-updated-date"></span>）
       </footer>
 
     </div>
