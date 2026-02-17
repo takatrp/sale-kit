@@ -1,4 +1,9 @@
 <!doctype html>
+<!-- internal version: r16
+  r15 → r16 変更点（転記の確実性向上）
+  - 関連ツール（iframe / 別タブ）を開く際に、Step1/2の入力値をURLパラメータで確実に転記（mode/spend/cmr/sales/recovery/unit_price/route）
+  - 要点コピー：Clipboard API失敗時のフォールバック（execCommand）を追加
+-->
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
@@ -635,7 +640,7 @@
         <a href="https://www.matsumoto-kaikei.or.jp/" target="_blank" rel="noopener license">税理士法人松本会計事務所</a> ｜ 
         <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="license noopener">CC BY-NC-SA 4.0</a> ｜ 
         <a href="/tool-portal/terms.html" target="_blank" rel="noopener">利用条件</a> ｜ 
-        <span id="build-rev">r15</span>（<span id="last-updated-date"></span>）
+        <span id="build-rev">r16</span>（<span id="last-updated-date"></span>）
       </footer>
 
     </div>
@@ -771,6 +776,9 @@
         .trim()
         .replace(/[,，\s]/g,'')
         .replace(/[・]/g,'.');
+    }
+    function stripNumberText(s){
+      return String(s ?? "").trim().replace(/[,，\s]/g,'');
     }
     function num(v){
       const s = normalizeDecimalText(v);
@@ -1240,7 +1248,7 @@
         $("detailTitle").textContent = "数量を上げる（深掘り）";
         $("detailSub").textContent   = "「取引単価×取引数」で、月あたり回収目標に必要な追加件数と入口数を揃えます。";
 
-        // URLパラメータで受け取った単価があれば初期値として使用（0 も許容するなら !== null 判定）
+        // URLパラメータで受け取った単価があれば初期値として使用
         const initUnitPrice = (importedUnitPrice !== null && importedUnitPrice !== undefined)
           ? formatInt(importedUnitPrice)
           : "";
@@ -1377,9 +1385,7 @@
           $("hourCostInput").addEventListener("input", ()=>{
             updateRouteDetailKPIs();
             persist();
-          });
 
-          $("hourCostInput").addEventListener("input", ()=>{
             const raw = String($("hourCostInput").value ?? "").trim();
             const v = num(raw);
             if(raw !== "" && v <= 0) showErr("hourCostErr", "時間単価は 0 より大きい数値で入力してください。");
@@ -1610,6 +1616,71 @@
       persist();
     }
 
+    // =========================
+    // ★転記（関連ツールへ）用URL生成
+    // =========================
+    function buildShareParams(extra={}){
+      const p = new URLSearchParams();
+
+      // mode は必ず送る（受け側で分岐できる）
+      p.set("mode", spendMode);
+
+      // spend は mode に合わせて送る
+      if(spendMode==="monthly") {
+        const v = stripNumberText($("spendMonthly")?.value);
+        if(v) p.set("spend", v);
+      }
+      if(spendMode==="yearly") {
+        const v = stripNumberText($("spendYearly")?.value);
+        if(v) p.set("spend", v);
+      }
+      if(spendMode==="once") {
+        const v = stripNumberText($("spendOnce")?.value);
+        if(v) p.set("spend", v);
+        const r = stripNumberText($("recoveryMonths")?.value);
+        if(r) p.set("recovery", r);
+      }
+
+      // cmr（%）
+      const cmrV = normalizeDecimalText($("cmr")?.value);
+      if(cmrV) p.set("cmr", cmrV);
+
+      // sales（年商）
+      const s = stripNumberText($("annualSales")?.value);
+      if(s) p.set("sales", s);
+
+      // unit_price（数量系）：
+      // 表示されている入力欄が優先。なければ importedUnitPrice を使う
+      const unitFromInput = stripNumberText($("volumeUnitPrice")?.value);
+      if(unitFromInput){
+        p.set("unit_price", unitFromInput);
+      }else if(importedUnitPrice !== null && importedUnitPrice !== undefined){
+        const u = String(importedUnitPrice);
+        if(u !== "") p.set("unit_price", u);
+      }
+
+      // route（任意：受け側で使える）
+      if(selectedRoute) p.set("route", selectedRoute);
+
+      // 追加パラメータ
+      Object.entries(extra || {}).forEach(([k,v])=>{
+        if(v === null || v === undefined) return;
+        const sv = String(v).trim();
+        if(sv === "") return;
+        p.set(k, sv);
+      });
+
+      return p;
+    }
+
+    function buildUrlWithParams(baseUrl, extra={}){
+      if(!baseUrl) return "";
+      const u = new URL(baseUrl, window.location.href);
+      const params = buildShareParams(extra);
+      params.forEach((v,k)=>u.searchParams.set(k,v));
+      return u.toString();
+    }
+
     // ▼ URLパラメータから値を受け取る処理（完全版）
     // 例：
     // ?mode=monthly&spend=123456&cmr=78.0&unit_price=1234
@@ -1716,8 +1787,13 @@
       $("toolFrame").src = "about:blank";
       currentUrl = "";
     }
+
+    // ★関連ツールURL（転記付き）
     function getToolUrl(){
-      return selectedRoute ? (TOOL_URLS[selectedRoute] || "") : "";
+      if(!selectedRoute) return "";
+      const base = TOOL_URLS[selectedRoute] || "";
+      if(!base) return "";
+      return buildUrlWithParams(base, { src: "action_tool" });
     }
     function getToolTitle(){
       return selectedRoute==="price" ? "単価を上げる（関連ツール）"
@@ -1825,9 +1901,39 @@
 
     $("btnClose").addEventListener("click", closeModal);
     $("modalBack").addEventListener("click", (e)=>{ if(e.target === $("modalBack")) closeModal(); });
-    $("btnOpenNewTab2").addEventListener("click", ()=>{ if(currentUrl) window.open(currentUrl, "_blank", "noopener,noreferrer"); });
+    $("btnOpenNewTab2").addEventListener("click", ()=>{
+      if(!currentUrl) return;
+      window.open(currentUrl, "_blank", "noopener,noreferrer");
+    });
 
     $("btnPrint").addEventListener("click", ()=>window.print());
+
+    // ★コピー（失敗時フォールバック）
+    async function copyTextRobust(text){
+      try{
+        if(navigator.clipboard && navigator.clipboard.writeText){
+          await navigator.clipboard.writeText(text);
+          return true;
+        }
+      }catch(e){}
+      try{
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.setAttribute("readonly", "");
+        ta.style.position = "fixed";
+        ta.style.top = "-9999px";
+        ta.style.left = "-9999px";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        ta.setSelectionRange(0, ta.value.length);
+        const ok = document.execCommand("copy");
+        document.body.removeChild(ta);
+        return !!ok;
+      }catch(e){
+        return false;
+      }
+    }
 
     $("btnCopy").addEventListener("click", async ()=>{
       const c = compute();
@@ -1902,12 +2008,12 @@ ${routeDetail ? routeDetail : ""}
 ・次回確認：${$("nextCheck").value || "—"}
 ・メモ：${$("freeMemo").value || "—"}`;
 
-      try{
-        await navigator.clipboard.writeText(text);
+      const ok = await copyTextRobust(text);
+      if(ok){
         const b = $("btnCopy"); const old = b.textContent;
         b.textContent = "コピーしました";
         setTimeout(()=>b.textContent=old, 900);
-      }catch(e){
+      }else{
         alert("コピーできない場合があります。必要なら画面の数値をそのままご利用ください。");
       }
     });
