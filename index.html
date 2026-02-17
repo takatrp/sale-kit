@@ -1,9 +1,4 @@
 <!doctype html>
-<!-- internal version: r7
-  changes from r6:
-  - 【重要】リセットにconfirm追加（誤タップによる全消去を防止）
-  - 【Nice to have】Step2「深掘り」選択時、詳細エリアへ自動スクロール（stickyヘッダ余白考慮）
--->
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
@@ -11,7 +6,6 @@
   <title>打ち手検討ツール｜支出額を売上換算 → 打ち手を検討</title>
   <meta name="description" content="支出額を限界利益率で売上換算し、単価・数量・自動化のどこで回収するかを同じ画面で整理します。" />
 
-  <!-- favicon -->
   <link rel="icon" type="image/png" sizes="192x192" href="favicon192192.png">
   <link rel="apple-touch-icon" sizes="192x192" href="favicon192192.png">
 
@@ -396,7 +390,6 @@
   <div class="wrap">
     <div class="grid">
 
-      <!-- STEP 1 -->
       <section class="card">
         <h2>1. 売上換算</h2>
         <div class="p">支出額が「売上に直すとどれくらいか」を、限界利益率で整理します（概算）。</div>
@@ -491,7 +484,6 @@
         </div>
       </section>
 
-      <!-- STEP 2 -->
       <section class="card">
         <h2>2. 打ち手を検討</h2>
         <div class="p">売上換算額を「どうやって作るか」を3つの方向から検討します。</div>
@@ -558,10 +550,9 @@
         </div>
       </section>
 
-      <!-- STEP 3 -->
       <section class="card">
         <h2>3. 次の一手</h2>
-        <div class="p">「何を」「いつから」「どの指標で確認するか」を決めると、判断がブレにくくなります。印刷してお渡しできる形で整理します。</div>
+        <div class="p">「実行（アクション）」へ落とし込むための整理です。</div>
 
         <div class="row" style="margin-top:12px;">
           <div>
@@ -569,15 +560,16 @@
             <input id="selectedRouteLabel" readonly value="（未選択）" />
           </div>
           <div>
-            <label>実行開始予定日（任意）</label>
-            <input id="startDate" type="date" />
+            <label>対象（商品 / 客層 / 業務など）</label>
+            <input id="targetScope" placeholder="例：A商品、既存顧客の更新単価、請求業務 など" />
           </div>
         </div>
 
         <div class="row" style="margin-top:10px;">
           <div>
-            <label>対象（商品 / 客層 / 業務など）</label>
-            <input id="targetScope" placeholder="例：A商品、既存顧客の更新単価、請求～入金の運用 など" />
+            <label>目標とする成果（数値）</label>
+            <input id="targetGoal" placeholder="例：売上+30万円、時間-10h など" />
+            <div class="help">Step1-2で試算した数字を目標として設定します。</div>
           </div>
           <div>
             <label>確認する指標（月次で見るもの）</label>
@@ -585,9 +577,28 @@
           </div>
         </div>
 
+        <div class="row" style="margin-top:10px;">
+          <div>
+            <label>最初の一歩（明日やること）</label>
+            <input id="firstAction" placeholder="例：〇〇さんに電話する、資料を取り寄せる" />
+            <div class="help">「24時間以内にできる具体的な行動」を書きます。</div>
+          </div>
+          <div>
+            <label>そのためにやめること（劣後順位）</label>
+            <input id="stopDoing" placeholder="例：定例会議、移動時間のスマホ、不要な報告書" />
+            <div class="help">新しい時間を確保するために「捨てるもの」を決めます。</div>
+          </div>
+        </div>
+
         <div style="margin-top:10px;">
-          <label>自由記入（決定事項 / 宿題 / メモ）</label>
-          <textarea id="freeMemo" placeholder="例：対象、実施手順、担当、期限、想定リスクと対策、次回までの宿題など"></textarea>
+          <label>次回確認日 / 報告相手</label>
+          <input id="nextCheck" placeholder="例：来月1日の打ち合わせ（税理士の先生と）、幹部MTGなど" />
+          <div class="help">「いつ」「誰と」振り返るかを決めると、実行力が高まります。</div>
+        </div>
+
+        <div style="margin-top:10px;">
+          <label>自由記入（メモ）</label>
+          <textarea id="freeMemo" placeholder="例：実施手順、担当、期限、想定リスクと対策など"></textarea>
         </div>
       </section>
 
@@ -604,7 +615,7 @@
         <a href="https://www.matsumoto-kaikei.or.jp/" target="_blank" rel="noopener license">税理士法人松本会計事務所</a> ｜ 
         <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="license noopener">CC BY-NC-SA 4.0</a> ｜ 
         <a href="/tool-portal/terms.html" target="_blank" rel="noopener">利用条件</a> ｜ 
-        <span id="build-rev">r7</span>（<span id="last-updated-date"></span>）
+        <span id="build-rev">r8</span>（<span id="last-updated-date"></span>）
       </footer>
 
     </div>
@@ -1361,7 +1372,6 @@
       $("routeChooser").style.display = "none";
       $("routeDetail").style.display = "block";
 
-      // ▼ 追加: スマホなどで詳細が開いたことに気づかせる（stickyヘッダー分の余白考慮）
       if(route){
         setTimeout(() => {
           const box = $("routeDetail");
@@ -1444,7 +1454,7 @@
         $("shareY").classList.add("small");
       }
 
-      $("selectedRouteLabel").value =
+      $("selectedRouteLabel").value = 
         selectedRoute==="price" ? "単価を上げる" :
         selectedRoute==="volume" ? "数量を上げる" :
         selectedRoute==="auto" ? "業務プロセスを自動化（時間創出）" :
@@ -1552,10 +1562,15 @@
         cmr: $("cmr").value,
         annualSales: $("annualSales").value,
         selectedRoute,
-        startDate: $("startDate").value,
+        // r8 updates
         targetScope: $("targetScope").value,
         checkKpi: $("checkKpi").value,
+        targetGoal: $("targetGoal").value,
+        firstAction: $("firstAction").value,
+        stopDoing: $("stopDoing").value,
+        nextCheck: $("nextCheck").value,
         freeMemo: $("freeMemo").value,
+        
         volumeLabelKey,
         volumeUnitPrice: $("volumeUnitPrice") ? $("volumeUnitPrice").value : "",
         volumeConvRate: $("volumeConvRate") ? $("volumeConvRate").value : "",
@@ -1576,9 +1591,13 @@
       if(v.cmr!=null) $("cmr").value = v.cmr;
       if(v.annualSales!=null) $("annualSales").value = v.annualSales;
 
-      if(v.startDate!=null) $("startDate").value = v.startDate;
+      // r8 updates
       if(v.targetScope!=null) $("targetScope").value = v.targetScope;
       if(v.checkKpi!=null) $("checkKpi").value = v.checkKpi;
+      if(v.targetGoal!=null) $("targetGoal").value = v.targetGoal;
+      if(v.firstAction!=null) $("firstAction").value = v.firstAction;
+      if(v.stopDoing!=null) $("stopDoing").value = v.stopDoing;
+      if(v.nextCheck!=null) $("nextCheck").value = v.nextCheck;
       if(v.freeMemo!=null) $("freeMemo").value = v.freeMemo;
 
       if(v.volumeLabelKey) volumeLabelKey = v.volumeLabelKey;
@@ -1606,14 +1625,18 @@
       }
     }
 
-    // ★ 重要修正：誤タップ対策（confirm）
     function doReset(){
       if(!confirm("入力内容をすべてリセットしますか？\n（この操作は取り消せません）")){
         return;
       }
 
       spendMode = "monthly";
-      ["spendMonthly","spendYearly","spendOnce","recoveryMonths","cmr","annualSales","startDate","targetScope","checkKpi","freeMemo"].forEach(id=>$(id).value="");
+      [
+        "spendMonthly","spendYearly","spendOnce","recoveryMonths",
+        "cmr","annualSales",
+        "targetScope","checkKpi","targetGoal","firstAction","stopDoing","nextCheck","freeMemo"
+      ].forEach(id=>{ if($(id)) $(id).value=""; });
+      
       $("monthlySalesAuto").value = "";
       $("spendMonthlyEqAuto").value = "";
 
@@ -1646,11 +1669,17 @@
     document.querySelectorAll('input[data-format="int"]').forEach(formatIntInput);
     document.querySelectorAll('input[data-format="decimal"]').forEach(formatDecimalInput);
 
-    ["spendMonthly","spendYearly","spendOnce","recoveryMonths","cmr","annualSales","startDate","targetScope","checkKpi","freeMemo"].forEach(id=>{
-      $(id).addEventListener("input", ()=>{
-        if(id==="recoveryMonths") syncRecoveryChipsFromInput();
-        render();
-      });
+    // Watch all inputs for Step 3 persistence
+    [
+      "spendMonthly","spendYearly","spendOnce","recoveryMonths","cmr","annualSales",
+      "targetScope","checkKpi","targetGoal","firstAction","stopDoing","nextCheck","freeMemo"
+    ].forEach(id=>{
+      if($(id)){
+        $(id).addEventListener("input", ()=>{
+          if(id==="recoveryMonths") syncRecoveryChipsFromInput();
+          render();
+        });
+      }
     });
 
     document.querySelectorAll("[data-pick]").forEach(btn=>{
@@ -1680,7 +1709,7 @@
 
     $("btnCopy").addEventListener("click", async ()=>{
       const c = compute();
-      const routeLabel =
+      const routeLabel = 
         selectedRoute==="price" ? "単価を上げる" :
         selectedRoute==="volume" ? "数量を上げる" :
         selectedRoute==="auto" ? "業務プロセスを自動化する" :
@@ -1717,7 +1746,7 @@
         const needTxM = (unitPrice>0 && Number.isFinite(c.salesEqTargetM)) ? (c.salesEqTargetM / unitPrice) : NaN;
         const needEntryM = (convRate>0 && convRate<=100 && Number.isFinite(needTxM)) ? (needTxM / (convRate/100)) : NaN;
 
-        routeDetail =
+        routeDetail = 
 `・${L.unitPriceLabel}：${unitPrice?yen(unitPrice):"—"}
 ・${L.convLabel}：${$("volumeConvRate") && $("volumeConvRate").value ? ($("volumeConvRate").value+"%") : "—"}
 ・必要な追加${L.txName}数：${Number.isFinite(needTxM)?(ceil1(needTxM)+" "+L.unitShort+"/月"):"—"}
@@ -1729,7 +1758,7 @@
         routeDetail = `・時間単価：${hour?yen(hour):"—"}／回収に必要な削減時間：${Number.isFinite(needHours)?(ceil1(needHours)+" h/月"):"—"}`;
       }
 
-      const text =
+      const text = 
 `【打ち手検討（概算）】
 ■1. 売上換算
 ${spendLine}
@@ -1743,10 +1772,13 @@ ${eqLine}
 ${routeDetail ? routeDetail : ""}
 
 ■3. 次の一手
-・開始予定日：${$("startDate").value || "—"}
 ・対象：${$("targetScope").value || "—"}
+・目標成果：${$("targetGoal").value || "—"}
 ・確認指標：${$("checkKpi").value || "—"}
-・自由記入：${$("freeMemo").value || "—"}`;
+・最初の一歩：${$("firstAction").value || "—"}
+・やめること：${$("stopDoing").value || "—"}
+・次回確認：${$("nextCheck").value || "—"}
+・メモ：${$("freeMemo").value || "—"}`;
 
       try{
         await navigator.clipboard.writeText(text);
