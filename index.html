@@ -1,8 +1,12 @@
 <!doctype html>
-<!-- internal version: r16
-  r15 → r16 変更点（転記の確実性向上）
-  - 関連ツール（iframe / 別タブ）を開く際に、Step1/2の入力値をURLパラメータで確実に転記（mode/spend/cmr/sales/recovery/unit_price/route）
-  - 要点コピー：Clipboard API失敗時のフォールバック（execCommand）を追加
+<!-- internal version: r17
+  r16 → r17 変更点（受信の確実性向上）
+  - URLクエリ（?）＋ハッシュ内クエリ（#...?...）の両方から受信
+  - 受信パラメータの別名（alias）を広く吸収
+  - %/円/カンマ等が混ざる数値も正規化して受信
+  - payload/p（JSONをURLエンコード or base64url）での一括受信にも対応（後方互換）
+  - URL掃除は当ツール用キーのみ削除（UTM等は保持）
+  - 受信適用中はIS_RESTORINGで中間persistを抑制
 -->
 <html lang="ja">
 <head>
@@ -640,7 +644,7 @@
         <a href="https://www.matsumoto-kaikei.or.jp/" target="_blank" rel="noopener license">税理士法人松本会計事務所</a> ｜ 
         <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="license noopener">CC BY-NC-SA 4.0</a> ｜ 
         <a href="/tool-portal/terms.html" target="_blank" rel="noopener">利用条件</a> ｜ 
-        <span id="build-rev">r16</span>（<span id="last-updated-date"></span>）
+        <span id="build-rev">r17</span>（<span id="last-updated-date"></span>）
       </footer>
 
     </div>
@@ -771,14 +775,24 @@
       }
     })();
 
+    // =========================
+    // 正規化（r17: 記号混入を強く吸収）
+    // =========================
     function normalizeDecimalText(s){
-      return String(s ?? "")
-        .trim()
-        .replace(/[,，\s]/g,'')
-        .replace(/[・]/g,'.');
+      let t = String(s ?? "").trim();
+      // よくある混入記号を除去・統一
+      t = t.replace(/[,，\s]/g,'').replace(/[・]/g,'.').replace(/[％%]/g,'');
+      // 数字と小数点以外を落とす（パラメータ受信の確実性重視）
+      t = t.replace(/[^0-9.]/g,'');
+      const parts = t.split(".");
+      if(parts.length > 2){
+        t = parts[0] + "." + parts.slice(1).join("");
+      }
+      return t;
     }
     function stripNumberText(s){
-      return String(s ?? "").trim().replace(/[,，\s]/g,'');
+      // 入力欄（int）由来は基本「数字+カンマ」だが、念のため強化
+      return String(s ?? "").trim().replace(/[,，\s]/g,'').replace(/[^\d]/g,'');
     }
     function num(v){
       const s = normalizeDecimalText(v);
@@ -813,6 +827,10 @@
 
     function formatInt(val){
       if(val === null || val === undefined) return "";
+      if(typeof val === "number" && Number.isFinite(val)){
+        const r = Math.round(val);
+        return r.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+      }
       const s = String(val).replace(/[^\d]/g, "");
       if(!s) return "";
       return s.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
@@ -847,6 +865,7 @@
       const raw = String(el.value ?? "");
       const caret = (el.selectionStart ?? raw.length);
       let normalized = raw.replace(/[,，\s]/g,'').replace(/[・]/g,'.');
+      normalized = normalized.replace(/[％%]/g,'');
       normalized = normalized.replace(/[^\d.]/g, "");
       const parts = normalized.split(".");
       if(parts.length > 2){
@@ -1126,7 +1145,7 @@
     }
 
     function syncRecoveryChipsFromInput(){
-      const raw = String($("recoveryMonths").value ?? "").trim().replace(/[,，\s]/g,'');
+      const raw = String($("recoveryMonths").value ?? "").trim().replace(/[,，\s]/g,'').replace(/[^\d]/g,'');
       const v = raw ? Number(raw) : NaN;
       RECOVERY_PRESETS.forEach(m=>{
         const b = document.getElementById("rec_" + m);
@@ -1248,7 +1267,6 @@
         $("detailTitle").textContent = "数量を上げる（深掘り）";
         $("detailSub").textContent   = "「取引単価×取引数」で、月あたり回収目標に必要な追加件数と入口数を揃えます。";
 
-        // URLパラメータで受け取った単価があれば初期値として使用
         const initUnitPrice = (importedUnitPrice !== null && importedUnitPrice !== undefined)
           ? formatInt(importedUnitPrice)
           : "";
@@ -1622,10 +1640,8 @@
     function buildShareParams(extra={}){
       const p = new URLSearchParams();
 
-      // mode は必ず送る（受け側で分岐できる）
       p.set("mode", spendMode);
 
-      // spend は mode に合わせて送る
       if(spendMode==="monthly") {
         const v = stripNumberText($("spendMonthly")?.value);
         if(v) p.set("spend", v);
@@ -1641,16 +1657,12 @@
         if(r) p.set("recovery", r);
       }
 
-      // cmr（%）
       const cmrV = normalizeDecimalText($("cmr")?.value);
       if(cmrV) p.set("cmr", cmrV);
 
-      // sales（年商）
       const s = stripNumberText($("annualSales")?.value);
       if(s) p.set("sales", s);
 
-      // unit_price（数量系）：
-      // 表示されている入力欄が優先。なければ importedUnitPrice を使う
       const unitFromInput = stripNumberText($("volumeUnitPrice")?.value);
       if(unitFromInput){
         p.set("unit_price", unitFromInput);
@@ -1659,10 +1671,8 @@
         if(u !== "") p.set("unit_price", u);
       }
 
-      // route（任意：受け側で使える）
       if(selectedRoute) p.set("route", selectedRoute);
 
-      // 追加パラメータ
       Object.entries(extra || {}).forEach(([k,v])=>{
         if(v === null || v === undefined) return;
         const sv = String(v).trim();
@@ -1681,43 +1691,213 @@
       return u.toString();
     }
 
-    // ▼ URLパラメータから値を受け取る処理（完全版）
-    // 例：
-    // ?mode=monthly&spend=123456&cmr=78.0&unit_price=1234
-    // 任意：sales=120000000 / recovery=12 / route=volume
-    function checkUrlParams(){
-      const params = new URLSearchParams(window.location.search);
-      if(!params || [...params.keys()].length === 0) return;
+    // =========================
+    // ★URL受信（r17 強化版）
+    // =========================
+    const IN_KEYS = {
+      mode:     ["mode","spendMode","m"],
+      spend:    ["spend","expense","cost","amount","spend_amount"],
+      spendM:   ["spend_monthly","spendMonthly","monthly_spend","monthly"],
+      spendY:   ["spend_yearly","spendYearly","yearly_spend","yearly","annual_spend"],
+      spendO:   ["spend_once","spendOnce","once_spend","once","one_time"],
+      cmr:      ["cmr","cmr_pct","margin","gross_margin","gm","profit_rate","rate"],
+      sales:    ["sales","annual_sales","annualSales","annual_sales_yen","revenue","turnover"],
+      recovery: ["recovery","recoveryMonths","recovery_months","months","term"],
+      unit:     ["unit_price","unitPrice","unitprice","unit","price_per_unit","unit_yen"],
+      route:    ["route","selectedRoute","r"],
+      payload:  ["payload","p","data"]
+    };
 
-      const p_mode     = params.get("mode");        // monthly | yearly | once
-      const p_spend    = params.get("spend");       // 支出額
-      const p_cmr      = params.get("cmr");         // 限界利益率(%)
-      const p_sales    = params.get("sales") ?? params.get("annual_sales"); // 年商（任意）
-      const p_recovery = params.get("recovery");    // 回収期間（月）※once用（任意）
-      const p_unit     = params.get("unit_price");  // 単価（Step2:数量）
-      const p_route    = params.get("route");       // price | volume | auto（任意）
+    function firstParam(params, keys){
+      for(const k of (keys||[])){
+        const v = params.get(k);
+        if(v !== null && String(v).trim() !== "") return v;
+      }
+      return null;
+    }
 
-      let changed = false;
+    function atobUtf8(b64){
+      try{
+        const bin = atob(b64);
+        const esc = Array.prototype.map.call(bin, c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('');
+        return decodeURIComponent(esc);
+      }catch(e){
+        try{ return atob(b64); }catch(e2){ return ""; }
+      }
+    }
 
-      // ① モード
-      if(p_mode && ["monthly","yearly","once"].includes(p_mode)){
-        setSpendMode(p_mode);
-        changed = true;
+    function tryParsePayload(params){
+      const raw = firstParam(params, IN_KEYS.payload);
+      if(!raw) return null;
+
+      // 1) まずURLエンコードJSONを試す
+      let s = raw;
+      try{
+        if(/%[0-9A-Fa-f]{2}/.test(s)) s = decodeURIComponent(s);
+      }catch(e){}
+
+      // 2) JSONならそのまま
+      const t = String(s).trim();
+      if(t.startsWith("{") && t.endsWith("}")){
+        try{
+          const obj = JSON.parse(t);
+          if(obj && typeof obj === "object") return obj;
+        }catch(e){}
       }
 
-      // ② 支出額（mode に応じて入れる）
-      if(p_spend !== null && String(p_spend).trim() !== ""){
-        const v = num(p_spend);
-        if(v > 0){
-          const fmtV = formatInt(v);
-          if(spendMode === "monthly") $("spendMonthly").value = fmtV;
-          if(spendMode === "yearly")  $("spendYearly").value  = fmtV;
-          if(spendMode === "once")    $("spendOnce").value    = fmtV;
-          changed = true;
+      // 3) base64url(JSON) を試す
+      if(/^[A-Za-z0-9\-_]+=*$/.test(t) && t.length >= 8){
+        const b64 = t.replace(/-/g,'+').replace(/_/g,'/');
+        const pad = b64.length % 4;
+        const b64p = pad ? (b64 + "=".repeat(4-pad)) : b64;
+        const decoded = atobUtf8(b64p);
+        const dt = String(decoded || "").trim();
+        if(dt.startsWith("{") && dt.endsWith("}")){
+          try{
+            const obj = JSON.parse(dt);
+            if(obj && typeof obj === "object") return obj;
+          }catch(e){}
         }
       }
 
-      // ③ 限界利益率
+      return null;
+    }
+
+    function getMergedParams(){
+      // ① 通常クエリ
+      const p = new URLSearchParams(window.location.search || "");
+
+      // ② ハッシュ内クエリ（例：#/?mode=...）
+      const h = String(window.location.hash || "");
+      const qi = h.indexOf("?");
+      if(qi !== -1 && qi < h.length-1){
+        const hs = h.slice(qi+1);
+        const hp = new URLSearchParams(hs);
+        hp.forEach((v,k)=>{
+          if(!p.has(k)) p.set(k,v);
+        });
+      }
+      return p;
+    }
+
+    function hasIncomingAny(params){
+      // payload があれば確実に処理対象
+      if(firstParam(params, IN_KEYS.payload)) return true;
+
+      // 主要キーが1つでもあれば処理対象
+      const checks = ["mode","spend","spendM","spendY","spendO","cmr","sales","recovery","unit","route"];
+      return checks.some(name => firstParam(params, IN_KEYS[name]));
+    }
+
+    function cleanIncomingFromUrl(){
+      const removeKeys = []
+        .concat(IN_KEYS.mode, IN_KEYS.spend, IN_KEYS.spendM, IN_KEYS.spendY, IN_KEYS.spendO,
+                IN_KEYS.cmr, IN_KEYS.sales, IN_KEYS.recovery, IN_KEYS.unit, IN_KEYS.route, IN_KEYS.payload);
+
+      const url = new URL(window.location.href);
+
+      // search から削除（UTMなどは残す）
+      const keep = new URLSearchParams(url.search);
+      removeKeys.forEach(k=>keep.delete(k));
+      const qs = keep.toString();
+      url.search = qs ? ("?" + qs) : "";
+
+      // hash 内クエリも削除（hash本体は残す）
+      const h = String(url.hash || "");
+      const qi = h.indexOf("?");
+      if(qi !== -1){
+        const base = h.slice(0, qi);
+        const hqs = h.slice(qi+1);
+        const hp = new URLSearchParams(hqs);
+        removeKeys.forEach(k=>hp.delete(k));
+        const nh = hp.toString();
+        url.hash = nh ? (base + "?" + nh) : base;
+      }
+
+      window.history.replaceState({}, "", url);
+    }
+
+    function checkUrlParams(){
+      const params = getMergedParams();
+      if(!hasIncomingAny(params)) return;
+
+      // payload があれば優先して展開（後方互換：個別キーがあればそれが上書き）
+      const payloadObj = tryParsePayload(params) || {};
+
+      // payloadObj → URLSearchParams風に参照できるように合成
+      const getFromPayload = (keys)=>{
+        for(const k of keys){
+          const v = payloadObj?.[k];
+          if(v !== undefined && v !== null && String(v).trim() !== "") return String(v);
+        }
+        return null;
+      };
+
+      const p_mode     = firstParam(params, IN_KEYS.mode)     ?? getFromPayload(IN_KEYS.mode);
+      const p_spend    = firstParam(params, IN_KEYS.spend)    ?? getFromPayload(IN_KEYS.spend);
+      const p_spendM   = firstParam(params, IN_KEYS.spendM)   ?? getFromPayload(IN_KEYS.spendM);
+      const p_spendY   = firstParam(params, IN_KEYS.spendY)   ?? getFromPayload(IN_KEYS.spendY);
+      const p_spendO   = firstParam(params, IN_KEYS.spendO)   ?? getFromPayload(IN_KEYS.spendO);
+
+      const p_cmr      = firstParam(params, IN_KEYS.cmr)      ?? getFromPayload(IN_KEYS.cmr);
+      const p_sales    = firstParam(params, IN_KEYS.sales)    ?? getFromPayload(IN_KEYS.sales);
+      const p_recovery = firstParam(params, IN_KEYS.recovery) ?? getFromPayload(IN_KEYS.recovery);
+      const p_unit     = firstParam(params, IN_KEYS.unit)     ?? getFromPayload(IN_KEYS.unit);
+      const p_route    = firstParam(params, IN_KEYS.route)    ?? getFromPayload(IN_KEYS.route);
+
+      let changed = false;
+
+      // 受信適用中は中間persistを抑制
+      IS_RESTORING = true;
+
+      // ① モード（なければ推定：専用キーが来ていればそれに合わせる）
+      let decidedMode = null;
+      if(p_mode && ["monthly","yearly","once"].includes(p_mode)){
+        decidedMode = p_mode;
+      }else{
+        // 推定：once系の手掛かり
+        if((p_recovery && String(p_recovery).trim() !== "") || (p_spendO && String(p_spendO).trim() !== "")){
+          decidedMode = "once";
+        }else if(p_spendY && String(p_spendY).trim() !== ""){
+          decidedMode = "yearly";
+        }else if(p_spendM && String(p_spendM).trim() !== ""){
+          decidedMode = "monthly";
+        }else{
+          // 既存を尊重（何もない場合）
+          decidedMode = null;
+        }
+      }
+      if(decidedMode){
+        setSpendMode(decidedMode);
+        changed = true;
+      }
+
+      // ② 支出額：まず専用キー（あれば）→ なければ汎用spend（modeに応じて）
+      const setSpendInto = (mode, rawVal)=>{
+        const v = num(rawVal);
+        if(v > 0){
+          const fmtV = formatInt(v);
+          if(mode === "monthly") $("spendMonthly").value = fmtV;
+          if(mode === "yearly")  $("spendYearly").value  = fmtV;
+          if(mode === "once")    $("spendOnce").value    = fmtV;
+          return true;
+        }
+        return false;
+      };
+
+      const modeNow = spendMode;
+
+      if(modeNow === "monthly" && p_spendM) { if(setSpendInto("monthly", p_spendM)) changed = true; }
+      if(modeNow === "yearly"  && p_spendY) { if(setSpendInto("yearly",  p_spendY)) changed = true; }
+      if(modeNow === "once"    && p_spendO) { if(setSpendInto("once",    p_spendO)) changed = true; }
+
+      if(!( (modeNow==="monthly"&&p_spendM) || (modeNow==="yearly"&&p_spendY) || (modeNow==="once"&&p_spendO) )){
+        if(p_spend !== null && String(p_spend).trim() !== ""){
+          if(setSpendInto(modeNow, p_spend)) changed = true;
+        }
+      }
+
+      // ③ 限界利益率（%混入でもOK）
       if(p_cmr !== null && String(p_cmr).trim() !== ""){
         $("cmr").value = normalizeDecimalText(p_cmr);
         changed = true;
@@ -1742,11 +1922,10 @@
         }
       }
 
-      // ⑥ Step2(数量) の単価：数値として保持（falsy罠回避）
+      // ⑥ Step2(数量) の単価
       if(p_unit !== null && String(p_unit).trim() !== ""){
         const v = num(p_unit);
-        importedUnitPrice = v; // ★数値で保持
-        // もし既に volume 入力欄が出ているなら即反映
+        importedUnitPrice = v; // ★数値で保持（0でも保持）
         if($("volumeUnitPrice")){
           $("volumeUnitPrice").value = formatInt(v);
           formatIntInput($("volumeUnitPrice"));
@@ -1754,11 +1933,14 @@
         changed = true;
       }
 
-      // ⑦ 任意：route を指定されたら、その深掘りを開く
+      // ⑦ route を指定されたら開く
       if(p_route && ["price","volume","auto"].includes(p_route)){
         setRoute(p_route);
         changed = true;
       }
+
+      // 受信適用終了
+      IS_RESTORING = false;
 
       if(changed){
         bindLiveFormatting(document);
@@ -1768,10 +1950,8 @@
         render();
         persist();
 
-        // URLからパラメータを消す（共有リンクを開いた側の履歴を綺麗にする）
-        const url = new URL(window.location.href);
-        url.search = "";
-        window.history.replaceState({}, "", url);
+        // URLから当ツール用パラメータだけ除去（UTM等は保持）
+        cleanIncomingFromUrl();
       }
     }
 
@@ -1788,7 +1968,6 @@
       currentUrl = "";
     }
 
-    // ★関連ツールURL（転記付き）
     function getToolUrl(){
       if(!selectedRoute) return "";
       const base = TOOL_URLS[selectedRoute] || "";
@@ -1812,7 +1991,6 @@
       volumeLabelKey = "generic";
       detailBuiltFor = "";
 
-      // clear inputs
       [
         "spendMonthly","spendYearly","spendOnce","recoveryMonths","cmr","annualSales",
         "targetScope","checkKpi","targetGoal","firstAction","stopDoing","nextCheck","freeMemo"
@@ -1820,7 +1998,6 @@
         if($(id)) $(id).value = "";
       });
 
-      // clear errors
       ["spendMonthlyErr","spendYearlyErr","spendOnceErr","recoveryErr","cmrErr"].forEach(id=>showErr(id, ""));
 
       closeModal();
@@ -1835,7 +2012,6 @@
       render();
     }
 
-    // 起動時UI：カードクリック（ボタン以外）
     document.querySelectorAll('.bigCard').forEach(card => {
       card.addEventListener('click', (e) => {
         if(e.target.tagName === 'BUTTON') return;
@@ -1855,7 +2031,6 @@
     $("modeYearly").addEventListener("click",  ()=>setSpendMode("yearly"));
     $("modeOnce").addEventListener("click",    ()=>setSpendMode("once"));
 
-    // まずデフォルトをセット（restore が上書きする）
     setSpendMode("monthly");
 
     // restore（端末保存）
@@ -1866,7 +2041,6 @@
     document.querySelectorAll('input[data-format="int"]').forEach(formatIntInput);
     document.querySelectorAll('input[data-format="decimal"]').forEach(formatDecimalInput);
 
-    // Watch inputs
     [
       "spendMonthly","spendYearly","spendOnce","recoveryMonths","cmr","annualSales",
       "targetScope","checkKpi","targetGoal","firstAction","stopDoing","nextCheck","freeMemo"
@@ -1908,7 +2082,6 @@
 
     $("btnPrint").addEventListener("click", ()=>window.print());
 
-    // ★コピー（失敗時フォールバック）
     async function copyTextRobust(text){
       try{
         if(navigator.clipboard && navigator.clipboard.writeText){
