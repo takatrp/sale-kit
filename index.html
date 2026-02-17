@@ -635,7 +635,7 @@
         <a href="https://www.matsumoto-kaikei.or.jp/" target="_blank" rel="noopener license">税理士法人松本会計事務所</a> ｜ 
         <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="license noopener">CC BY-NC-SA 4.0</a> ｜ 
         <a href="/tool-portal/terms.html" target="_blank" rel="noopener">利用条件</a> ｜ 
-        <span id="build-rev">r13</span>（<span id="last-updated-date"></span>）
+        <span id="build-rev">r14</span>（<span id="last-updated-date"></span>）
       </footer>
 
     </div>
@@ -804,7 +804,7 @@
     }
 
     function formatIntInput(el){
-      if(!el) return; // 修正: nullチェック追加
+      if(!el) return; 
       const raw = String(el.value ?? "");
       const caret = (el.selectionStart ?? raw.length);
       const digitsBefore = raw.slice(0, caret).replace(/[^\d]/g, "").length;
@@ -828,7 +828,7 @@
     }
 
     function formatDecimalInput(el){
-      if(!el) return; // 修正: nullチェック追加
+      if(!el) return; 
       const raw = String(el.value ?? "");
       const caret = (el.selectionStart ?? raw.length);
       let normalized = raw.replace(/[,，\s]/g,'').replace(/[・]/g,'.');
@@ -1521,10 +1521,13 @@
 
       // 支出額
       if(p_spend){
-        const v = normalizeDecimalText(p_spend);
-        if(spendMode === "monthly") $("spendMonthly").value = v;
-        if(spendMode === "yearly")  $("spendYearly").value = v;
-        if(spendMode === "once")    $("spendOnce").value = v;
+        const v = normalizeDecimalText(p_spend); // まず数値を正規化
+        // ★重要: formatIntを通してからセットすることで、正しいフォーマット（カンマ区切り）にする
+        const fmtV = formatInt(v);
+        
+        if(spendMode === "monthly") $("spendMonthly").value = fmtV;
+        if(spendMode === "yearly")  $("spendYearly").value = fmtV;
+        if(spendMode === "once")    $("spendOnce").value = fmtV;
         changed = true;
       }
 
@@ -1536,7 +1539,8 @@
 
       // 年商
       if(p_sales){
-        $("annualSales").value = normalizeDecimalText(p_sales);
+        const v = normalizeDecimalText(p_sales);
+        $("annualSales").value = formatInt(v); // ★ここもフォーマット
         changed = true;
       }
 
