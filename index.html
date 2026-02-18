@@ -1,16 +1,11 @@
 <!doctype html>
-<!-- internal version: r17
-  r16 → r17 変更点（受信の確実性向上）
-  - URLクエリ（?）＋ハッシュ内クエリ（#...?...）の両方から受信
-  - 受信パラメータの別名（alias）を広く吸収
-  - %/円/カンマ等が混ざる数値も正規化して受信
-  - payload/p（JSONをURLエンコード or base64url）での一括受信にも対応（後方互換）
-  - URL掃除は当ツール用キーのみ削除（UTM等は保持）
-  - 受信適用中はIS_RESTORINGで中間persistを抑制
-
-  ★r17（今回の追加・指定反映）
-  - 他ツールから数値転記で遷移した場合、「数字を転記しました」トースト表示
-  - 「単価を上げる」→価格改定検討ツール起動時、単価/限界利益率/月間販売数量（受信 or 推定）等をURL転記（別名キーも同梱）
+<!-- internal version: r18
+  r17 → r18 変更点（ご指定反映）
+  - タイトル（ヘッダー「打ち手検討ツール」）のフォントを拡大
+  - Step1説明文「（概算）」を削除
+  - 限界利益率のヘルプ文言を差し替え
+    「変動損益計算書」→「限界利益率の確認方法（FXC）.mp4」へリンク
+    「月次決算速報サービス」→「限界利益率の確認方法（月次決算速報サービス）.png」へリンク
 -->
 <html lang="ja">
 <head>
@@ -65,7 +60,11 @@
       flex:0 0 auto;
     }
     .btxt{min-width:0}
-    .bttl{font-weight:900; font-size:20px; line-height:1.15; letter-spacing:.02em;}
+    /* ★変更：タイトルを少し大きく */
+    .bttl{font-weight:900; font-size:24px; line-height:1.15; letter-spacing:.02em;}
+    @media (max-width:480px){
+      .bttl{font-size:22px;}
+    }
     .bsub{font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 
     .btns{display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end}
@@ -154,6 +153,8 @@
       box-shadow:0 0 0 4px rgba(87,136,153,.16);
     }
     .help{font-size:12px; color:var(--muted); margin-top:6px}
+    /* ★リンクが視認しやすいように（help内のみ） */
+    .help a{ text-decoration:underline; text-underline-offset:2px; }
 
     .err{
       margin-top:8px;
@@ -385,7 +386,7 @@
       text-underline-offset:2px;
     }
 
-    /* ★転記トースト（今回追加：レイアウト影響なしの固定表示） */
+    /* ★転記トースト（レイアウト影響なしの固定表示） */
     .toast{
       position:fixed;
       left:50%;
@@ -445,7 +446,7 @@
     </div>
   </div>
 
-  <!-- ★転記トースト（今回追加） -->
+  <!-- ★転記トースト -->
   <div class="toast" id="importToast" role="status" aria-live="polite">数字を転記しました</div>
 
   <div class="wrap">
@@ -453,7 +454,8 @@
 
       <section class="card">
         <h2>1. 売上換算</h2>
-        <div class="p">支出額が「売上に直すとどれくらいか」を、限界利益率で整理します（概算）。</div>
+        <!-- ★変更：末尾の（概算）を削除 -->
+        <div class="p">支出額が「売上に直すとどれくらいか」を、限界利益率で整理します。</div>
 
         <div class="avgWrap">
           <div class="avgTitle">支出の頻度</div>
@@ -509,7 +511,14 @@
           <div>
             <label for="cmr">限界利益率（%）</label>
             <input id="cmr" inputmode="decimal" pattern="[0-9.]*" placeholder="例：30" data-format="decimal" />
-            <div class="help">不明な場合は、まずは概算で入力（例：30）し、後で更新してもOKです。</div>
+            <!-- ★変更：ヘルプ文言差し替え＋リンク付与 -->
+            <div class="help">
+              限界利益率は、
+              <a href="限界利益率の確認方法（FXC）.mp4" target="_blank" rel="noopener">変動損益計算書</a>
+              もしくは
+              <a href="限界利益率の確認方法（月次決算速報サービス）.png" target="_blank" rel="noopener">月次決算速報サービス</a>
+              にてご確認ください。
+            </div>
             <div class="err" id="cmrErr" aria-live="polite"></div>
           </div>
         </div>
@@ -679,7 +688,7 @@
         <a href="https://www.matsumoto-kaikei.or.jp/" target="_blank" rel="noopener license">税理士法人松本会計事務所</a> ｜ 
         <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="license noopener">CC BY-NC-SA 4.0</a> ｜ 
         <a href="/tool-portal/terms.html" target="_blank" rel="noopener">利用条件</a> ｜ 
-        <span id="build-rev">r17</span>（<span id="last-updated-date"></span>）
+        <span id="build-rev">r18</span>（<span id="last-updated-date"></span>）
       </footer>
 
     </div>
@@ -791,7 +800,6 @@
 
     // URLパラメータから取得した単価を保持する変数（数値 or null）
     let importedUnitPrice = null;
-
     // ★月間販売数量（外部ツールから受信した場合に保持：数値 or null）
     let importedMonthlyQty = null;
 
@@ -814,7 +822,7 @@
     })();
 
     // =========================
-    // 正規化（r17: 記号混入を強く吸収）
+    // 正規化（記号混入を強く吸収）
     // =========================
     function normalizeDecimalText(s){
       let t = String(s ?? "").trim();
@@ -946,7 +954,7 @@
         detailBuiltFor,
         volumeLabelKey,
         importedUnitPrice,
-        importedMonthlyQty, // ★保存（今回追加）
+        importedMonthlyQty,
         fields: {
           spendMonthly: $("spendMonthly")?.value ?? "",
           spendYearly: $("spendYearly")?.value ?? "",
@@ -982,7 +990,7 @@
       // 1) globals
       if(st.volumeLabelKey && VOLUME_LABEL_SETS[st.volumeLabelKey]) volumeLabelKey = st.volumeLabelKey;
       if(st.importedUnitPrice !== undefined) importedUnitPrice = st.importedUnitPrice;
-      if(st.importedMonthlyQty !== undefined) importedMonthlyQty = st.importedMonthlyQty; // ★復元（今回追加）
+      if(st.importedMonthlyQty !== undefined) importedMonthlyQty = st.importedMonthlyQty;
 
       // 2) spend mode first（UI切替があるので先に）
       if(st.spendMode && ["monthly","yearly","once"].includes(st.spendMode)){
@@ -1672,7 +1680,7 @@
     }
 
     // =========================
-    // ★転記トースト表示（今回追加）
+    // トースト表示（転記/コピーなどに流用）
     // =========================
     function showImportToast(msg="数字を転記しました"){
       const el = $("importToast");
@@ -1686,7 +1694,7 @@
     }
 
     // =========================
-    // ★転記（関連ツールへ）用URL生成
+    // 共有用（関連ツールへ）URL生成
     // =========================
     function buildShareParams(extra={}){
       const p = new URLSearchParams();
@@ -1722,7 +1730,6 @@
         if(u !== "" && u !== "0") p.set("unit_price", u);
       }
 
-      // ★月間販売数量（受信していれば転記：今回追加）
       if(importedMonthlyQty !== null && importedMonthlyQty !== undefined && Number(importedMonthlyQty) > 0){
         p.set("monthly_qty", String(Math.round(Number(importedMonthlyQty))));
       }
@@ -1747,13 +1754,9 @@
       return u.toString();
     }
 
-    // =========================
-    // ★価格改定ツール用の「別名キー」同梱（今回追加）
-    // =========================
     function buildPriceToolExtraParams(){
       const ex = {};
 
-      // 限界利益率（%）
       const cmrV = normalizeDecimalText($("cmr")?.value);
       if(cmrV){
         ex.cmr = cmrV;
@@ -1763,7 +1766,6 @@
         ex.cmr_pct = cmrV;
       }
 
-      // 単価（volume入力 or imported）
       const unitFromInput = stripNumberText($("volumeUnitPrice")?.value);
       let unitVal = null;
       if(unitFromInput){
@@ -1782,7 +1784,6 @@
         ex.current_price = u;
       }
 
-      // 年商（任意）
       const sales = stripNumberText($("annualSales")?.value);
       if(sales){
         ex.sales = sales;
@@ -1791,9 +1792,6 @@
         ex.revenue = sales;
       }
 
-      // 月間販売数量：
-      // 1) 受信値があればそれを優先
-      // 2) なければ「月商（年商÷12）/単価」で推定（入力が揃う場合のみ）
       let qty = null;
       if(importedMonthlyQty !== null && importedMonthlyQty !== undefined && Number(importedMonthlyQty) > 0){
         qty = Number(importedMonthlyQty);
@@ -1818,7 +1816,7 @@
     }
 
     // =========================
-    // ★URL受信（r17 強化版）
+    // URL受信
     // =========================
     const IN_KEYS = {
       mode:     ["mode","spendMode","m"],
@@ -1830,7 +1828,6 @@
       sales:    ["sales","annual_sales","annualSales","annual_sales_yen","revenue","turnover"],
       recovery: ["recovery","recoveryMonths","recovery_months","months","term"],
       unit:     ["unit_price","unitPrice","unitprice","unit","price_per_unit","unit_yen"],
-      // ★月間数量（今回追加：受信＆保持のみ。UIは増やさない）
       qty:      ["monthly_qty","monthlyQty","month_qty","qty","quantity","monthly_quantity","q"],
       route:    ["route","selectedRoute","r"],
       payload:  ["payload","p","data"]
@@ -1890,7 +1887,6 @@
 
     function getMergedParams(){
       const p = new URLSearchParams(window.location.search || "");
-
       const h = String(window.location.hash || "");
       const qi = h.indexOf("?");
       if(qi !== -1 && qi < h.length-1){
@@ -1905,7 +1901,6 @@
 
     function hasIncomingAny(params){
       if(firstParam(params, IN_KEYS.payload)) return true;
-
       const checks = ["mode","spend","spendM","spendY","spendO","cmr","sales","recovery","unit","qty","route"];
       return checks.some(name => firstParam(params, IN_KEYS[name]));
     }
@@ -1965,7 +1960,6 @@
 
       let changed = false;
 
-      // ★「数値転記」の判定（routeだけの場合は出さない）
       const hasNumericIncoming =
         [p_spend, p_spendM, p_spendY, p_spendO, p_cmr, p_sales, p_recovery, p_unit, p_qty]
           .some(v => v !== null && String(v).trim() !== "");
@@ -2009,7 +2003,7 @@
       if(modeNow === "yearly"  && p_spendY) { if(setSpendInto("yearly",  p_spendY)) changed = true; }
       if(modeNow === "once"    && p_spendO) { if(setSpendInto("once",    p_spendO)) changed = true; }
 
-      if(!( (modeNow==="monthly"&&p_spendM) || (modeNow==="yearly"&&p_spendY) || (modeNow==="once"&&p_spendO) )){
+      if(!((modeNow==="monthly"&&p_spendM) || (modeNow==="yearly"&&p_spendY) || (modeNow==="once"&&p_spendO))){
         if(p_spend !== null && String(p_spend).trim() !== ""){
           if(setSpendInto(modeNow, p_spend)) changed = true;
         }
@@ -2047,7 +2041,6 @@
         changed = true;
       }
 
-      // ★月間販売数量（保持のみ：今回追加）
       if(p_qty !== null && String(p_qty).trim() !== ""){
         const v = num(p_qty);
         if(Number.isFinite(v) && v > 0){
@@ -2073,7 +2066,6 @@
 
         cleanIncomingFromUrl();
 
-        // ★数値転記があった場合だけ表示（今回追加）
         if(hasNumericIncoming){
           showImportToast("数字を転記しました");
         }
@@ -2098,12 +2090,10 @@
       const base = TOOL_URLS[selectedRoute] || "";
       if(!base) return "";
 
-      // ★「単価を上げる」→価格改定ツール起動時は別名キーも同梱（今回追加）
       if(selectedRoute === "price"){
         const ex = Object.assign({ src: "action_tool" }, buildPriceToolExtraParams());
         return buildUrlWithParams(base, ex);
       }
-
       return buildUrlWithParams(base, { src: "action_tool" });
     }
     function getToolTitle(){
@@ -2120,7 +2110,7 @@
       try{ localStorage.removeItem(KEY); }catch(e){}
 
       importedUnitPrice = null;
-      importedMonthlyQty = null; // ★追加
+      importedMonthlyQty = null;
       volumeLabelKey = "generic";
       detailBuiltFor = "";
 
@@ -2145,6 +2135,106 @@
       render();
     }
 
+    // =========================
+    // コピー用テキスト生成
+    // =========================
+    function buildSummaryText(){
+      const c = compute();
+
+      const lines = [];
+      lines.push("【打ち手検討ツール｜要点】");
+
+      // Step1
+      const modeLabel =
+        spendMode==="monthly" ? "毎月（固定費）" :
+        spendMode==="yearly"  ? "年額（固定費）" :
+        "単発（1回）";
+      lines.push("");
+      lines.push("■1. 売上換算");
+      lines.push(`- 支出の頻度：${modeLabel}`);
+
+      if(spendMode==="monthly"){
+        const v = $("spendMonthly").value.trim();
+        if(v) lines.push(`- 支出額：¥${stripNumberText(v).replace(/\B(?=(\d{3})+(?!\d))/g, ",")} / 月`);
+      }
+      if(spendMode==="yearly"){
+        const v = $("spendYearly").value.trim();
+        if(v) lines.push(`- 支出額：¥${stripNumberText(v).replace(/\B(?=(\d{3})+(?!\d))/g, ",")} / 年`);
+      }
+      if(spendMode==="once"){
+        const v = $("spendOnce").value.trim();
+        const rm = $("recoveryMonths").value.trim();
+        if(v) lines.push(`- 支出額：¥${stripNumberText(v).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}（単発）`);
+        if(rm) lines.push(`- 回収期間：${stripNumberText(rm)}ヶ月`);
+        if(Number.isFinite(c.spendPerMonth)) lines.push(`- 月割り支出（自動）：${yen(c.spendPerMonth)}`);
+      }
+
+      const cmrRaw = $("cmr").value.trim();
+      if(cmrRaw) lines.push(`- 限界利益率：${normalizeDecimalText(cmrRaw)}%`);
+
+      const salesRaw = $("annualSales").value.trim();
+      if(salesRaw) lines.push(`- 年商（任意）：¥${stripNumberText(salesRaw).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`);
+
+      if(spendMode==="once"){
+        if(Number.isFinite(c.salesEqTotal)) lines.push(`- 売上換算額（総額）：${yen(c.salesEqTotal)}`);
+        if(Number.isFinite(c.salesEqTargetM)) lines.push(`- 回収目標（円/月）：${yen(c.salesEqTargetM)}`);
+      }else{
+        if(Number.isFinite(c.salesEqTargetM)) lines.push(`- 売上換算額（円/月）：${yen(c.salesEqTargetM)}`);
+        if(Number.isFinite(c.salesEqAnnual))  lines.push(`- 売上換算額（円/年）：${yen(c.salesEqAnnual)}`);
+      }
+      if(Number.isFinite(c.shareY)) lines.push(`- 年商に占める割合：${pct1(c.shareY)}`);
+
+      // Step2
+      lines.push("");
+      lines.push("■2. 打ち手（選択）");
+      const routeLabel =
+        selectedRoute==="price" ? "単価を上げる" :
+        selectedRoute==="volume" ? "数量を上げる" :
+        selectedRoute==="auto" ? "業務プロセスを自動化（時間創出）" :
+        "（未選択）";
+      lines.push(`- 方向性：${routeLabel}`);
+
+      // Step3
+      lines.push("");
+      lines.push("■3. 次の一手");
+      const f = (id)=>String($(id)?.value ?? "").trim();
+      if(f("targetScope")) lines.push(`- 対象：${f("targetScope")}`);
+      if(f("targetGoal"))  lines.push(`- 目標：${f("targetGoal")}`);
+      if(f("checkKpi"))    lines.push(`- 確認指標：${f("checkKpi")}`);
+      if(f("firstAction")) lines.push(`- 最初の一歩：${f("firstAction")}`);
+      if(f("stopDoing"))   lines.push(`- やめること：${f("stopDoing")}`);
+      if(f("nextCheck"))   lines.push(`- 次回確認日/報告相手：${f("nextCheck")}`);
+      if(f("freeMemo"))    lines.push(`- メモ：${f("freeMemo")}`);
+
+      return lines.join("\n");
+    }
+
+    async function copyToClipboard(text){
+      try{
+        if(navigator.clipboard && navigator.clipboard.writeText){
+          await navigator.clipboard.writeText(text);
+          return true;
+        }
+      }catch(e){}
+      try{
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.left = "-9999px";
+        ta.style.top = "0";
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        const ok = document.execCommand("copy");
+        document.body.removeChild(ta);
+        return ok;
+      }catch(e){}
+      return false;
+    }
+
+    // =========================
+    // クリック挙動（カード全体）
+    // =========================
     document.querySelectorAll('.bigCard').forEach(card => {
       card.addEventListener('click', (e) => {
         if(e.target.tagName === 'BUTTON') return;
@@ -2169,6 +2259,9 @@
     // restore（端末保存）
     const st = load();
     restore(st);
+
+    // URL受信（あれば上書き）
+    checkUrlParams();
 
     bindLiveFormatting(document);
     document.querySelectorAll('input[data-format="int"]').forEach(formatIntInput);
@@ -2213,123 +2306,25 @@
       window.open(currentUrl, "_blank", "noopener,noreferrer");
     });
 
-    $("btnPrint").addEventListener("click", ()=>window.print());
-
-    async function copyTextRobust(text){
-      try{
-        if(navigator.clipboard && navigator.clipboard.writeText){
-          await navigator.clipboard.writeText(text);
-          return true;
-        }
-      }catch(e){}
-      try{
-        const ta = document.createElement("textarea");
-        ta.value = text;
-        ta.setAttribute("readonly", "");
-        ta.style.position = "fixed";
-        ta.style.top = "-9999px";
-        ta.style.left = "-9999px";
-        ta.style.opacity = "0";
-        document.body.appendChild(ta);
-        ta.select();
-        ta.setSelectionRange(0, ta.value.length);
-        const ok = document.execCommand("copy");
-        document.body.removeChild(ta);
-        return !!ok;
-      }catch(e){
-        return false;
-      }
-    }
-
-    $("btnCopy").addEventListener("click", async ()=>{
-      const c = compute();
-      const routeLabel =
-        selectedRoute==="price" ? "単価を上げる" :
-        selectedRoute==="volume" ? "数量を上げる" :
-        selectedRoute==="auto" ? "業務プロセスを自動化する" :
-        "（未選択）";
-
-      let spendLine = "";
-      if(spendMode==="monthly"){
-        spendLine = `・支出（月）：${yen(c.spendM)}`;
-      }else if(spendMode==="yearly"){
-        spendLine = `・支出（年）：${yen(c.spendY)}`;
-      }else{
-        const rm = String($("recoveryMonths").value ?? "").trim();
-        const rmDisp = rm ? rm : "—";
-        spendLine = `・支出（単発）：${yen(c.spendO)}／回収期間：${rmDisp}ヶ月（月割り ${Number.isFinite(c.spendPerMonth)?yen(c.spendPerMonth):"—"}）`;
-      }
-
-      const cmrDisp = $("cmr").value ? ($("cmr").value + "%") : "—";
-
-      let eqLine = "";
-      if(spendMode==="once"){
-        eqLine = `・売上換算（総額）：${Number.isFinite(c.salesEqTotal)?yen(c.salesEqTotal):"—"}／回収目標（月）：${Number.isFinite(c.salesEqTargetM)?yen(c.salesEqTargetM):"—"}`;
-      }else{
-        eqLine = `・売上換算（月）：${Number.isFinite(c.salesEqTargetM)?yen(c.salesEqTargetM):"—"}／（年）：${Number.isFinite(c.salesEqAnnual)?yen(c.salesEqAnnual):"—"}`;
-      }
-
-      let routeDetail = "";
-      if(selectedRoute==="price"){
-        routeDetail = `・必要な上乗せ率（%）※年商入力時：${Number.isFinite(c.needPricePct)?pct1(c.needPricePct):"—"}`;
-      }
-      if(selectedRoute==="volume"){
-        const L = volLabels();
-        const unitPrice = $("volumeUnitPrice") ? num($("volumeUnitPrice").value) : 0;
-        const convRate = $("volumeConvRate") ? num($("volumeConvRate").value) : 0;
-        const needTxM = (unitPrice>0 && Number.isFinite(c.salesEqTargetM)) ? (c.salesEqTargetM / unitPrice) : NaN;
-        const needEntryM = (convRate>0 && convRate<=100 && Number.isFinite(needTxM)) ? (needTxM / (convRate/100)) : NaN;
-
-        routeDetail =
-`・${L.unitPriceLabel}：${unitPrice?yen(unitPrice):"—"}
-・${L.convLabel}：${$("volumeConvRate") && $("volumeConvRate").value ? ($("volumeConvRate").value+"%") : "—"}
-・必要な追加${L.txName}数：${Number.isFinite(needTxM)?(ceil1(needTxM)+" "+L.unitShort+"/月"):"—"}
-・必要な${L.entryLabel}：${Number.isFinite(needEntryM)?(ceil1(needEntryM)+" "+L.entryShort+"/月"):"—"}`;
-      }
-      if(selectedRoute==="auto"){
-        const hour = $("hourCostInput") ? num($("hourCostInput").value) : 0;
-        const needHours = (hour>0 && Number.isFinite(c.spendPerMonth)) ? (c.spendPerMonth/hour) : NaN;
-        routeDetail = `・時間単価：${hour?yen(hour):"—"}／回収に必要な削減時間：${Number.isFinite(needHours)?(ceil1(needHours)+" h/月"):"—"}`;
-      }
-
-      const text =
-`【打ち手検討（概算）】
-■1. 売上換算
-${spendLine}
-・限界利益率：${cmrDisp}
-${eqLine}
-・年商比：${Number.isFinite(c.shareY)?pct1(c.shareY):"—"}
-・月商（年商÷12）：${c.annualSales>0 ? yen(c.monthlySalesAuto) : "—"}
-
-■2. 打ち手
-・選択：${routeLabel}
-${routeDetail ? routeDetail : ""}
-
-■3. 次の一手
-・対象：${$("targetScope").value || "—"}
-・目標成果：${$("targetGoal").value || "—"}
-・確認指標：${$("checkKpi").value || "—"}
-・最初の一歩：${$("firstAction").value || "—"}
-・やめること：${$("stopDoing").value || "—"}
-・次回確認：${$("nextCheck").value || "—"}
-・メモ：${$("freeMemo").value || "—"}`;
-
-      const ok = await copyTextRobust(text);
-      if(ok){
-        const b = $("btnCopy"); const old = b.textContent;
-        b.textContent = "コピーしました";
-        setTimeout(()=>b.textContent=old, 900);
-      }else{
-        alert("コピーできない場合があります。必要なら画面の数値をそのままご利用ください。");
+    // Escでモーダルを閉じる（任意）
+    document.addEventListener("keydown", (e)=>{
+      if(e.key === "Escape" && $("modalBack").style.display === "flex"){
+        closeModal();
       }
     });
 
+    // 下部ボタン
+    $("btnPrint").addEventListener("click", ()=>window.print());
     $("btnReset").addEventListener("click", doReset);
     $("btnResetTop").addEventListener("click", doReset);
 
-    // ★起動時にURLチェック（ローカル復元の後に上書き）
-    checkUrlParams();
+    $("btnCopy").addEventListener("click", async ()=>{
+      const text = buildSummaryText();
+      const ok = await copyToClipboard(text);
+      showImportToast(ok ? "コピーしました" : "コピーに失敗しました");
+    });
 
+    // 初回描画
     render();
   </script>
 </body>
