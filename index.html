@@ -2,6 +2,15 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-5K91Y7SGZG"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-5K91Y7SGZG');
+  </script>
+
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>打ち手検討ツール｜支出額を売上換算 → 打ち手を検討</title>
   <meta name="description" content="支出額を限界利益率で売上換算し、単価・数量・自動化のどこで回収するかを同じ画面で整理します。" />
@@ -61,13 +70,13 @@
     .logo{
       width:44px; height:44px;
       border-radius:14px;
-      border:none;                 /* ← 実線枠を削除 */
+      border:none;                  /* ← 実線枠を削除 */
       background:transparent;       /* 必要なら #fff に戻してOK */
       object-fit:contain;           /* cover → contain（ロゴを切らない） */
       display:block;
       box-shadow:0 6px 16px rgba(20,40,50,.10);
       transition:.12s transform,.12s box-shadow;
-      padding:0;                   /* 必要なら 4px 等にしてもOK */
+      padding:0;                    /* 必要なら 4px 等にしてもOK */
     }
     .logoLink:hover .logo{
       transform:translateY(-1px);
@@ -471,7 +480,6 @@
   <div class="top">
     <div class="topin">
       <div class="brand">
-        <!-- ★修正：ロゴにツールポータルへのリンクを付与 -->
         <a class="logoLink" href="https://takatrp.github.io/tool-portal/" aria-label="ツールポータルへ">
           <img class="logo" src="ロゴ.jpg" alt="ロゴ" />
         </a>
@@ -755,7 +763,7 @@
 
   <div id="capture-area" style="position:fixed; left:-9999px; top:0; width:800px; height:800px; background-color:#fff; font-family:'Hiragino Sans', 'Noto Sans JP', sans-serif; color:#17323a; box-sizing:border-box;">
     <div style="width:100%; height:100%; padding:50px; display:flex; flex-direction:column; border:30px solid #2c3e50;">
-       
+        
        <div style="text-align:center; border-bottom:4px solid #578899; padding-bottom:20px; margin-bottom:30px;">
           <h2 style="font-size:48px; font-weight:900; color:#17323a; letter-spacing:0.05em; margin:0;">黒字経営への行動宣言</h2>
           <p style="font-size:16px; color:#578899; font-weight:bold; letter-spacing:0.2em; margin:5px 0 0;">ACTION DECLARATION</p>
@@ -2035,18 +2043,18 @@
         return null;
       };
 
-      const p_mode     = firstParam(params, IN_KEYS.mode)     ?? getFromPayload(IN_KEYS.mode);
-      const p_spend    = firstParam(params, IN_KEYS.spend)    ?? getFromPayload(IN_KEYS.spend);
-      const p_spendM   = firstParam(params, IN_KEYS.spendM)   ?? getFromPayload(IN_KEYS.spendM);
-      const p_spendY   = firstParam(params, IN_KEYS.spendY)   ?? getFromPayload(IN_KEYS.spendY);
-      const p_spendO   = firstParam(params, IN_KEYS.spendO)   ?? getFromPayload(IN_KEYS.spendO);
+      const p_mode      = firstParam(params, IN_KEYS.mode)      ?? getFromPayload(IN_KEYS.mode);
+      const p_spend     = firstParam(params, IN_KEYS.spend)     ?? getFromPayload(IN_KEYS.spend);
+      const p_spendM    = firstParam(params, IN_KEYS.spendM)    ?? getFromPayload(IN_KEYS.spendM);
+      const p_spendY    = firstParam(params, IN_KEYS.spendY)    ?? getFromPayload(IN_KEYS.spendY);
+      const p_spendO    = firstParam(params, IN_KEYS.spendO)    ?? getFromPayload(IN_KEYS.spendO);
 
-      const p_cmr      = firstParam(params, IN_KEYS.cmr)      ?? getFromPayload(IN_KEYS.cmr);
-      const p_sales    = firstParam(params, IN_KEYS.sales)    ?? getFromPayload(IN_KEYS.sales);
+      const p_cmr       = firstParam(params, IN_KEYS.cmr)       ?? getFromPayload(IN_KEYS.cmr);
+      const p_sales     = firstParam(params, IN_KEYS.sales)     ?? getFromPayload(IN_KEYS.sales);
       const p_recovery = firstParam(params, IN_KEYS.recovery) ?? getFromPayload(IN_KEYS.recovery);
-      const p_unit     = firstParam(params, IN_KEYS.unit)     ?? getFromPayload(IN_KEYS.unit);
-      const p_qty      = firstParam(params, IN_KEYS.qty)      ?? getFromPayload(IN_KEYS.qty);
-      const p_route    = firstParam(params, IN_KEYS.route)    ?? getFromPayload(IN_KEYS.route);
+      const p_unit      = firstParam(params, IN_KEYS.unit)      ?? getFromPayload(IN_KEYS.unit);
+      const p_qty       = firstParam(params, IN_KEYS.qty)       ?? getFromPayload(IN_KEYS.qty);
+      const p_route     = firstParam(params, IN_KEYS.route)     ?? getFromPayload(IN_KEYS.route);
 
       let changed = false;
 
