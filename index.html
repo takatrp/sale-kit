@@ -7,6 +7,10 @@
   - payload/p（JSONをURLエンコード or base64url）での一括受信にも対応（後方互換）
   - URL掃除は当ツール用キーのみ削除（UTM等は保持）
   - 受信適用中はIS_RESTORINGで中間persistを抑制
+
+  ★r17（今回の追加・指定反映）
+  - 他ツールから数値転記で遷移した場合、「数字を転記しました」トースト表示
+  - 「単価を上げる」→価格改定検討ツール起動時、単価/限界利益率/月間販売数量（受信 or 推定）等をURL転記（別名キーも同梱）
 -->
 <html lang="ja">
 <head>
@@ -381,10 +385,38 @@
       text-underline-offset:2px;
     }
 
+    /* ★転記トースト（今回追加：レイアウト影響なしの固定表示） */
+    .toast{
+      position:fixed;
+      left:50%;
+      top:74px;
+      transform:translateX(-50%) translateY(-8px);
+      z-index:120;
+      padding:10px 12px;
+      border-radius:999px;
+      border:1px solid rgba(87,136,153,.35);
+      background:#fff;
+      box-shadow:0 12px 30px rgba(20,40,50,.12);
+      font-size:13px;
+      font-weight:900;
+      color:var(--text);
+      opacity:0;
+      pointer-events:none;
+      transition:.18s transform, .18s opacity;
+      max-width:min(92vw, 560px);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .toast.show{
+      opacity:1;
+      transform:translateX(-50%) translateY(0);
+    }
+
     @page { size: auto; margin: 12mm; }
     @media print{
       body{background:#fff}
-      .btns, .modalBack{display:none !important}
+      .btns, .modalBack, .toast{display:none !important}
       .wrap{padding:0}
       .card{box-shadow:none; border:1px solid #ddd}
       .k, .k2{background:#fff}
@@ -412,6 +444,9 @@
       </div>
     </div>
   </div>
+
+  <!-- ★転記トースト（今回追加） -->
+  <div class="toast" id="importToast" role="status" aria-live="polite">数字を転記しました</div>
 
   <div class="wrap">
     <div class="grid">
@@ -757,6 +792,9 @@
     // URLパラメータから取得した単価を保持する変数（数値 or null）
     let importedUnitPrice = null;
 
+    // ★月間販売数量（外部ツールから受信した場合に保持：数値 or null）
+    let importedMonthlyQty = null;
+
     // 復元中フラグ（復元中に persist 乱発しない）
     let IS_RESTORING = false;
 
@@ -780,9 +818,7 @@
     // =========================
     function normalizeDecimalText(s){
       let t = String(s ?? "").trim();
-      // よくある混入記号を除去・統一
       t = t.replace(/[,，\s]/g,'').replace(/[・]/g,'.').replace(/[％%]/g,'');
-      // 数字と小数点以外を落とす（パラメータ受信の確実性重視）
       t = t.replace(/[^0-9.]/g,'');
       const parts = t.split(".");
       if(parts.length > 2){
@@ -791,7 +827,6 @@
       return t;
     }
     function stripNumberText(s){
-      // 入力欄（int）由来は基本「数字+カンマ」だが、念のため強化
       return String(s ?? "").trim().replace(/[,，\s]/g,'').replace(/[^\d]/g,'');
     }
     function num(v){
@@ -911,6 +946,7 @@
         detailBuiltFor,
         volumeLabelKey,
         importedUnitPrice,
+        importedMonthlyQty, // ★保存（今回追加）
         fields: {
           spendMonthly: $("spendMonthly")?.value ?? "",
           spendYearly: $("spendYearly")?.value ?? "",
@@ -946,6 +982,7 @@
       // 1) globals
       if(st.volumeLabelKey && VOLUME_LABEL_SETS[st.volumeLabelKey]) volumeLabelKey = st.volumeLabelKey;
       if(st.importedUnitPrice !== undefined) importedUnitPrice = st.importedUnitPrice;
+      if(st.importedMonthlyQty !== undefined) importedMonthlyQty = st.importedMonthlyQty; // ★復元（今回追加）
 
       // 2) spend mode first（UI切替があるので先に）
       if(st.spendMode && ["monthly","yearly","once"].includes(st.spendMode)){
@@ -1340,7 +1377,7 @@
         `;
 
         $("detailHint").textContent =
-          "次に『入口を増やす（施策）』か『成約率を上げる（改善）』のどちらを主軸にするかを決めると、動きやすくなります。";
+          "次に『入口を増やす（施策）』か 『成約率を上げる（改善）』のどちらを主軸にするかを決めると、動きやすくなります。";
 
         const mount = $("volumeLabelChips");
         if(mount){
@@ -1635,6 +1672,20 @@
     }
 
     // =========================
+    // ★転記トースト表示（今回追加）
+    // =========================
+    function showImportToast(msg="数字を転記しました"){
+      const el = $("importToast");
+      if(!el) return;
+      el.textContent = msg;
+      el.classList.add("show");
+      window.clearTimeout(showImportToast._t);
+      showImportToast._t = window.setTimeout(()=>{
+        el.classList.remove("show");
+      }, 2200);
+    }
+
+    // =========================
     // ★転記（関連ツールへ）用URL生成
     // =========================
     function buildShareParams(extra={}){
@@ -1667,8 +1718,13 @@
       if(unitFromInput){
         p.set("unit_price", unitFromInput);
       }else if(importedUnitPrice !== null && importedUnitPrice !== undefined){
-        const u = String(importedUnitPrice);
-        if(u !== "") p.set("unit_price", u);
+        const u = String(Math.round(Number(importedUnitPrice)));
+        if(u !== "" && u !== "0") p.set("unit_price", u);
+      }
+
+      // ★月間販売数量（受信していれば転記：今回追加）
+      if(importedMonthlyQty !== null && importedMonthlyQty !== undefined && Number(importedMonthlyQty) > 0){
+        p.set("monthly_qty", String(Math.round(Number(importedMonthlyQty))));
       }
 
       if(selectedRoute) p.set("route", selectedRoute);
@@ -1692,6 +1748,76 @@
     }
 
     // =========================
+    // ★価格改定ツール用の「別名キー」同梱（今回追加）
+    // =========================
+    function buildPriceToolExtraParams(){
+      const ex = {};
+
+      // 限界利益率（%）
+      const cmrV = normalizeDecimalText($("cmr")?.value);
+      if(cmrV){
+        ex.cmr = cmrV;
+        ex.margin = cmrV;
+        ex.gm = cmrV;
+        ex.rate = cmrV;
+        ex.cmr_pct = cmrV;
+      }
+
+      // 単価（volume入力 or imported）
+      const unitFromInput = stripNumberText($("volumeUnitPrice")?.value);
+      let unitVal = null;
+      if(unitFromInput){
+        const n = Number(unitFromInput);
+        if(Number.isFinite(n) && n > 0) unitVal = n;
+      }else if(importedUnitPrice !== null && importedUnitPrice !== undefined){
+        const n = Number(importedUnitPrice);
+        if(Number.isFinite(n) && n > 0) unitVal = n;
+      }
+      if(unitVal !== null){
+        const u = String(Math.round(unitVal));
+        ex.unit_price = u;
+        ex.unitPrice = u;
+        ex.unit = u;
+        ex.price = u;
+        ex.current_price = u;
+      }
+
+      // 年商（任意）
+      const sales = stripNumberText($("annualSales")?.value);
+      if(sales){
+        ex.sales = sales;
+        ex.annual_sales = sales;
+        ex.annualSales = sales;
+        ex.revenue = sales;
+      }
+
+      // 月間販売数量：
+      // 1) 受信値があればそれを優先
+      // 2) なければ「月商（年商÷12）/単価」で推定（入力が揃う場合のみ）
+      let qty = null;
+      if(importedMonthlyQty !== null && importedMonthlyQty !== undefined && Number(importedMonthlyQty) > 0){
+        qty = Number(importedMonthlyQty);
+      }else{
+        const c = compute();
+        if(unitVal && c.monthlySalesAuto > 0){
+          const q = c.monthlySalesAuto / unitVal;
+          if(Number.isFinite(q) && q > 0) qty = Math.round(q);
+        }
+      }
+      if(qty !== null && Number.isFinite(qty) && qty > 0){
+        const q = String(Math.round(qty));
+        ex.monthly_qty = q;
+        ex.monthlyQty = q;
+        ex.qty = q;
+        ex.quantity = q;
+        ex.month_qty = q;
+        ex.monthly_quantity = q;
+      }
+
+      return ex;
+    }
+
+    // =========================
     // ★URL受信（r17 強化版）
     // =========================
     const IN_KEYS = {
@@ -1704,6 +1830,8 @@
       sales:    ["sales","annual_sales","annualSales","annual_sales_yen","revenue","turnover"],
       recovery: ["recovery","recoveryMonths","recovery_months","months","term"],
       unit:     ["unit_price","unitPrice","unitprice","unit","price_per_unit","unit_yen"],
+      // ★月間数量（今回追加：受信＆保持のみ。UIは増やさない）
+      qty:      ["monthly_qty","monthlyQty","month_qty","qty","quantity","monthly_quantity","q"],
       route:    ["route","selectedRoute","r"],
       payload:  ["payload","p","data"]
     };
@@ -1730,13 +1858,11 @@
       const raw = firstParam(params, IN_KEYS.payload);
       if(!raw) return null;
 
-      // 1) まずURLエンコードJSONを試す
       let s = raw;
       try{
         if(/%[0-9A-Fa-f]{2}/.test(s)) s = decodeURIComponent(s);
       }catch(e){}
 
-      // 2) JSONならそのまま
       const t = String(s).trim();
       if(t.startsWith("{") && t.endsWith("}")){
         try{
@@ -1745,7 +1871,6 @@
         }catch(e){}
       }
 
-      // 3) base64url(JSON) を試す
       if(/^[A-Za-z0-9\-_]+=*$/.test(t) && t.length >= 8){
         const b64 = t.replace(/-/g,'+').replace(/_/g,'/');
         const pad = b64.length % 4;
@@ -1764,10 +1889,8 @@
     }
 
     function getMergedParams(){
-      // ① 通常クエリ
       const p = new URLSearchParams(window.location.search || "");
 
-      // ② ハッシュ内クエリ（例：#/?mode=...）
       const h = String(window.location.hash || "");
       const qi = h.indexOf("?");
       if(qi !== -1 && qi < h.length-1){
@@ -1781,28 +1904,24 @@
     }
 
     function hasIncomingAny(params){
-      // payload があれば確実に処理対象
       if(firstParam(params, IN_KEYS.payload)) return true;
 
-      // 主要キーが1つでもあれば処理対象
-      const checks = ["mode","spend","spendM","spendY","spendO","cmr","sales","recovery","unit","route"];
+      const checks = ["mode","spend","spendM","spendY","spendO","cmr","sales","recovery","unit","qty","route"];
       return checks.some(name => firstParam(params, IN_KEYS[name]));
     }
 
     function cleanIncomingFromUrl(){
       const removeKeys = []
         .concat(IN_KEYS.mode, IN_KEYS.spend, IN_KEYS.spendM, IN_KEYS.spendY, IN_KEYS.spendO,
-                IN_KEYS.cmr, IN_KEYS.sales, IN_KEYS.recovery, IN_KEYS.unit, IN_KEYS.route, IN_KEYS.payload);
+                IN_KEYS.cmr, IN_KEYS.sales, IN_KEYS.recovery, IN_KEYS.unit, IN_KEYS.qty, IN_KEYS.route, IN_KEYS.payload);
 
       const url = new URL(window.location.href);
 
-      // search から削除（UTMなどは残す）
       const keep = new URLSearchParams(url.search);
       removeKeys.forEach(k=>keep.delete(k));
       const qs = keep.toString();
       url.search = qs ? ("?" + qs) : "";
 
-      // hash 内クエリも削除（hash本体は残す）
       const h = String(url.hash || "");
       const qi = h.indexOf("?");
       if(qi !== -1){
@@ -1821,10 +1940,8 @@
       const params = getMergedParams();
       if(!hasIncomingAny(params)) return;
 
-      // payload があれば優先して展開（後方互換：個別キーがあればそれが上書き）
       const payloadObj = tryParsePayload(params) || {};
 
-      // payloadObj → URLSearchParams風に参照できるように合成
       const getFromPayload = (keys)=>{
         for(const k of keys){
           const v = payloadObj?.[k];
@@ -1843,19 +1960,22 @@
       const p_sales    = firstParam(params, IN_KEYS.sales)    ?? getFromPayload(IN_KEYS.sales);
       const p_recovery = firstParam(params, IN_KEYS.recovery) ?? getFromPayload(IN_KEYS.recovery);
       const p_unit     = firstParam(params, IN_KEYS.unit)     ?? getFromPayload(IN_KEYS.unit);
+      const p_qty      = firstParam(params, IN_KEYS.qty)      ?? getFromPayload(IN_KEYS.qty);
       const p_route    = firstParam(params, IN_KEYS.route)    ?? getFromPayload(IN_KEYS.route);
 
       let changed = false;
 
-      // 受信適用中は中間persistを抑制
+      // ★「数値転記」の判定（routeだけの場合は出さない）
+      const hasNumericIncoming =
+        [p_spend, p_spendM, p_spendY, p_spendO, p_cmr, p_sales, p_recovery, p_unit, p_qty]
+          .some(v => v !== null && String(v).trim() !== "");
+
       IS_RESTORING = true;
 
-      // ① モード（なければ推定：専用キーが来ていればそれに合わせる）
       let decidedMode = null;
       if(p_mode && ["monthly","yearly","once"].includes(p_mode)){
         decidedMode = p_mode;
       }else{
-        // 推定：once系の手掛かり
         if((p_recovery && String(p_recovery).trim() !== "") || (p_spendO && String(p_spendO).trim() !== "")){
           decidedMode = "once";
         }else if(p_spendY && String(p_spendY).trim() !== ""){
@@ -1863,7 +1983,6 @@
         }else if(p_spendM && String(p_spendM).trim() !== ""){
           decidedMode = "monthly";
         }else{
-          // 既存を尊重（何もない場合）
           decidedMode = null;
         }
       }
@@ -1872,7 +1991,6 @@
         changed = true;
       }
 
-      // ② 支出額：まず専用キー（あれば）→ なければ汎用spend（modeに応じて）
       const setSpendInto = (mode, rawVal)=>{
         const v = num(rawVal);
         if(v > 0){
@@ -1897,13 +2015,11 @@
         }
       }
 
-      // ③ 限界利益率（%混入でもOK）
       if(p_cmr !== null && String(p_cmr).trim() !== ""){
         $("cmr").value = normalizeDecimalText(p_cmr);
         changed = true;
       }
 
-      // ④ 年商（任意）
       if(p_sales !== null && String(p_sales).trim() !== ""){
         const v = num(p_sales);
         if(v > 0){
@@ -1912,7 +2028,6 @@
         }
       }
 
-      // ⑤ 単発の回収期間（任意）
       if(p_recovery !== null && String(p_recovery).trim() !== ""){
         const v = num(p_recovery);
         if(v >= 1){
@@ -1922,10 +2037,9 @@
         }
       }
 
-      // ⑥ Step2(数量) の単価
       if(p_unit !== null && String(p_unit).trim() !== ""){
         const v = num(p_unit);
-        importedUnitPrice = v; // ★数値で保持（0でも保持）
+        importedUnitPrice = v;
         if($("volumeUnitPrice")){
           $("volumeUnitPrice").value = formatInt(v);
           formatIntInput($("volumeUnitPrice"));
@@ -1933,13 +2047,20 @@
         changed = true;
       }
 
-      // ⑦ route を指定されたら開く
+      // ★月間販売数量（保持のみ：今回追加）
+      if(p_qty !== null && String(p_qty).trim() !== ""){
+        const v = num(p_qty);
+        if(Number.isFinite(v) && v > 0){
+          importedMonthlyQty = v;
+          changed = true;
+        }
+      }
+
       if(p_route && ["price","volume","auto"].includes(p_route)){
         setRoute(p_route);
         changed = true;
       }
 
-      // 受信適用終了
       IS_RESTORING = false;
 
       if(changed){
@@ -1950,8 +2071,12 @@
         render();
         persist();
 
-        // URLから当ツール用パラメータだけ除去（UTM等は保持）
         cleanIncomingFromUrl();
+
+        // ★数値転記があった場合だけ表示（今回追加）
+        if(hasNumericIncoming){
+          showImportToast("数字を転記しました");
+        }
       }
     }
 
@@ -1972,6 +2097,13 @@
       if(!selectedRoute) return "";
       const base = TOOL_URLS[selectedRoute] || "";
       if(!base) return "";
+
+      // ★「単価を上げる」→価格改定ツール起動時は別名キーも同梱（今回追加）
+      if(selectedRoute === "price"){
+        const ex = Object.assign({ src: "action_tool" }, buildPriceToolExtraParams());
+        return buildUrlWithParams(base, ex);
+      }
+
       return buildUrlWithParams(base, { src: "action_tool" });
     }
     function getToolTitle(){
@@ -1988,6 +2120,7 @@
       try{ localStorage.removeItem(KEY); }catch(e){}
 
       importedUnitPrice = null;
+      importedMonthlyQty = null; // ★追加
       volumeLabelKey = "generic";
       detailBuiltFor = "";
 
