@@ -1,12 +1,4 @@
 <!doctype html>
-<!-- internal version: r18
-  r17 → r18 変更点（ご指定反映）
-  - タイトル（ヘッダー「打ち手検討ツール」）のフォントを拡大
-  - Step1説明文「（概算）」を削除
-  - 限界利益率のヘルプ文言を差し替え
-    「変動損益計算書」→「限界利益率の確認方法（FXC）.mp4」へリンク
-    「月次決算速報サービス」→「限界利益率の確認方法（月次決算速報サービス）.png」へリンク
--->
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
@@ -16,6 +8,8 @@
 
   <link rel="icon" type="image/png" sizes="192x192" href="favicon192192.png">
   <link rel="apple-touch-icon" sizes="192x192" href="favicon192192.png">
+
+  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 
   <style>
     :root{
@@ -32,6 +26,9 @@
       --danger:#b42318;
       --dangerSoft:rgba(180,35,24,.08);
       --focus:rgba(87,136,153,.45);
+      
+      /* Action Color for Save Button */
+      --actionOrange: #d35400;
     }
     *{box-sizing:border-box}
     body{
@@ -60,7 +57,6 @@
       flex:0 0 auto;
     }
     .btxt{min-width:0}
-    /* ★変更：タイトルを少し大きく */
     .bttl{font-weight:900; font-size:24px; line-height:1.15; letter-spacing:.02em;}
     @media (max-width:480px){
       .bttl{font-size:22px;}
@@ -95,6 +91,18 @@
     .btn.back:hover{
       background:rgba(87,136,153,.20);
       border-color:rgba(87,136,153,.75);
+    }
+
+    /* ★追加：保存ボタン用スタイル */
+    .btn.save-card{
+      background: var(--actionOrange);
+      border-color: var(--actionOrange);
+      color: #fff;
+    }
+    .btn.save-card:hover{
+      background: #e67e22; /* lighter orange */
+      border-color: #e67e22;
+      box-shadow: 0 10px 20px rgba(211, 84, 0, 0.25);
     }
 
     .btn:focus-visible,
@@ -153,7 +161,6 @@
       box-shadow:0 0 0 4px rgba(87,136,153,.16);
     }
     .help{font-size:12px; color:var(--muted); margin-top:6px}
-    /* ★リンクが視認しやすいように（help内のみ） */
     .help a{ text-decoration:underline; text-underline-offset:2px; }
 
     .err{
@@ -359,15 +366,22 @@
     }
 
     .card-actions{padding-top:10px;}
-    .action-row{display:flex; gap:10px; margin:6px 0; flex-wrap:nowrap;}
+    .action-row{display:flex; gap:10px; margin:6px 0; flex-wrap:wrap;}
     .action-row .btn{
       background:#eef7f9; color:#3f7c8e; border:1px solid #cfe3ea; box-shadow:none;
-      padding:12px 14px; font-size:15px; border-radius:12px; flex:1 1 33%; white-space:nowrap;
+      padding:12px 14px; font-size:15px; border-radius:12px; flex:1 1 20%; white-space:nowrap;
     }
     .action-row .btn:hover{background:#e6f2f6;}
+    /* ★追加：保存ボタンのオーバーライド */
+    .action-row .btn.save-card{
+       background: var(--actionOrange); color: white; border-color: var(--actionOrange);
+    }
+    .action-row .btn.save-card:hover{
+       background: #e67e22; border-color: #e67e22;
+    }
+    
     @media (max-width:760px){
-      .action-row{flex-wrap:wrap;}
-      .action-row .btn{flex:1 1 100%;}
+      .action-row .btn{flex:1 1 45%;}
     }
 
     footer.mk-mini{
@@ -386,7 +400,7 @@
       text-underline-offset:2px;
     }
 
-    /* ★転記トースト（レイアウト影響なしの固定表示） */
+    /* ★転記トースト */
     .toast{
       position:fixed;
       left:50%;
@@ -417,7 +431,7 @@
     @page { size: auto; margin: 12mm; }
     @media print{
       body{background:#fff}
-      .btns, .modalBack, .toast{display:none !important}
+      .btns, .modalBack, .toast, #btnSaveCard {display:none !important}
       .wrap{padding:0}
       .card{box-shadow:none; border:1px solid #ddd}
       .k, .k2{background:#fff}
@@ -446,7 +460,6 @@
     </div>
   </div>
 
-  <!-- ★転記トースト -->
   <div class="toast" id="importToast" role="status" aria-live="polite">数字を転記しました</div>
 
   <div class="wrap">
@@ -454,7 +467,6 @@
 
       <section class="card">
         <h2>1. 売上換算</h2>
-        <!-- ★変更：末尾の（概算）を削除 -->
         <div class="p">支出額が「売上に直すとどれくらいか」を、限界利益率で整理します。</div>
 
         <div class="avgWrap">
@@ -511,7 +523,6 @@
           <div>
             <label for="cmr">限界利益率（%）</label>
             <input id="cmr" inputmode="decimal" pattern="[0-9.]*" placeholder="例：30" data-format="decimal" />
-            <!-- ★変更：ヘルプ文言差し替え＋リンク付与 -->
             <div class="help">
               限界利益率は、
               <a href="限界利益率の確認方法（FXC）.mp4" target="_blank" rel="noopener">変動損益計算書</a>
@@ -677,6 +688,8 @@
 
       <section class="card card-actions" aria-label="操作">
         <div class="action-row">
+          <button id="btnSaveCard" class="btn save-card" type="button">📸 宣言シートを保存</button>
+          
           <button id="btnCopy" class="btn" type="button">要点をコピー</button>
           <button id="btnPrint" class="btn" type="button">印刷 / PDF保存</button>
           <button id="btnReset" class="btn" type="button">リセット</button>
@@ -688,7 +701,7 @@
         <a href="https://www.matsumoto-kaikei.or.jp/" target="_blank" rel="noopener license">税理士法人松本会計事務所</a> ｜ 
         <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="license noopener">CC BY-NC-SA 4.0</a> ｜ 
         <a href="/tool-portal/terms.html" target="_blank" rel="noopener">利用条件</a> ｜ 
-        <span id="build-rev">r18</span>（<span id="last-updated-date"></span>）
+        <span id="build-rev">r19</span>（<span id="last-updated-date"></span>）
       </footer>
 
     </div>
@@ -709,6 +722,49 @@
           もし表示されない場合は「別タブで開く」をご利用ください（ブラウザ側/ツール側の制限で埋め込み表示ができない場合があります）。
         </div>
       </div>
+    </div>
+  </div>
+
+  <div id="capture-area" style="position:fixed; left:-9999px; top:0; width:800px; height:800px; background-color:#fff; font-family:'Hiragino Sans', 'Noto Sans JP', sans-serif; color:#17323a; box-sizing:border-box;">
+    <div style="width:100%; height:100%; padding:50px; display:flex; flex-direction:column; justify-content:space-between; border:30px solid #2c3e50;">
+       <div style="text-align:center; border-bottom:3px solid #2c3e50; padding-bottom:30px;">
+          <h2 style="margin:0; font-size:32px; color:#2c3e50; letter-spacing:0.1em;">ACTION DECLARATION</h2>
+          <p style="margin:10px 0 0; font-size:18px; color:#56707a;">黒字経営への行動宣言</p>
+       </div>
+       
+       <div style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:20px 0;">
+          <p style="font-size:18px; color:#888; margin:0 0 15px;">私の最初の一歩</p>
+          <h1 id="card-action" style="font-size:42px; font-weight:900; color:#d35400; line-height:1.4; margin:0 0 50px; max-height:180px; overflow:hidden;">
+            未入力
+          </h1>
+          
+          <div style="width:100%; display:grid; grid-template-columns:1fr 1fr; gap:30px;">
+             <div style="background:#f6f8fb; padding:25px; border-radius:16px;">
+                <p style="font-size:14px; color:#56707a; margin:0 0 10px; font-weight:bold;">目標成果</p>
+                <p id="card-goal" style="font-size:24px; font-weight:bold; margin:0; line-height:1.3;">-</p>
+             </div>
+             <div style="background:#f6f8fb; padding:25px; border-radius:16px;">
+                <p style="font-size:14px; color:#56707a; margin:0 0 10px; font-weight:bold;">やめること</p>
+                <p id="card-stop" style="font-size:24px; font-weight:bold; margin:0; line-height:1.3;">-</p>
+             </div>
+          </div>
+       </div>
+       
+       <div style="border-top:2px dashed #ccc; padding-top:30px; display:flex; justify-content:space-between; align-items:flex-end;">
+           <div>
+              <div style="font-size:18px; color:#56707a;">
+                 <span style="display:inline-block; width:60px;">期限:</span> <span id="card-deadline" style="font-weight:bold; color:#17323a;">-</span>
+              </div>
+              <div style="font-size:18px; color:#56707a; margin-top:8px;">
+                 <span style="display:inline-block; width:60px;">報告:</span> <span id="card-partner" style="font-weight:bold; color:#17323a;">-</span>
+              </div>
+           </div>
+           <div style="text-align:right;">
+              <p style="margin:0; font-size:14px; color:#aaa;">Generated by</p>
+              <p style="margin:0; font-size:16px; font-weight:bold; color:#56707a;">松本会計 打ち手検討ツール</p>
+              <p id="card-date" style="margin:5px 0 0; font-size:12px; color:#ccc;"></p>
+           </div>
+       </div>
     </div>
   </div>
 
@@ -2233,6 +2289,57 @@
     }
 
     // =========================
+    // ★追加：画像生成処理
+    // =========================
+    function generateAndDownloadCard() {
+      // 1. 値のセット
+      const f = (id)=>String($(id)?.value ?? "").trim();
+      const actionVal = f("firstAction") || "未入力";
+      const goalVal   = f("targetGoal") || "-";
+      const stopVal   = f("stopDoing") || "-";
+      const deadline  = f("nextCheck") || "-";
+      // 報告相手が入力されていなければ「自分自身」などとするか、そのまま表示
+      const partner   = f("nextCheck") ? (f("nextCheck").split(/[、,]/)[1] || "—") : "—";
+      // ※nextCheckに「日付」と「相手」が混ざる運用の場合があるので、ここではそのまま表示させるか、シンプルに全出しします
+      // デザインの都合上、deadline = nextCheck とします
+
+      $("card-action").textContent = actionVal;
+      $("card-goal").textContent   = goalVal;
+      $("card-stop").textContent   = stopVal;
+      $("card-deadline").textContent = deadline;
+      $("card-partner").textContent = f("checkKpi") || "—"; // 報告相手欄がないため、確認指標を出すか、固定文言にする
+      
+      // 修正: 画面の入力欄とカードの対応付けを最適化
+      // nextCheck -> 期限
+      // 報告相手 -> ツールの入力欄には明確に分かれていないため、メモ等から取るか、nextCheckをそのまま使う
+      // ここでは、nextCheckを期限として扱い、報告相手は「—」または固定にします
+      $("card-deadline").textContent = f("nextCheck") || "未設定";
+      $("card-partner").textContent = "（決めた相手）"; // 入力欄がないため
+
+      const d = new Date();
+      $("card-date").textContent = `${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()}`;
+
+      // 2. html2canvas実行
+      const area = $("capture-area");
+      showImportToast("画像を作成中...");
+
+      html2canvas(area, {
+        scale: 2, // 高解像度
+        useCORS: true
+      }).then(canvas => {
+        const link = document.createElement('a');
+        link.download = '行動宣言シート.png';
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+        showImportToast("画像を保存しました");
+      }).catch(err => {
+        console.error(err);
+        showImportToast("画像の作成に失敗しました");
+      });
+    }
+
+
+    // =========================
     // クリック挙動（カード全体）
     // =========================
     document.querySelectorAll('.bigCard').forEach(card => {
@@ -2323,6 +2430,9 @@
       const ok = await copyToClipboard(text);
       showImportToast(ok ? "コピーしました" : "コピーに失敗しました");
     });
+
+    // ★追加：保存ボタンイベント
+    $("btnSaveCard").addEventListener("click", generateAndDownloadCard);
 
     // 初回描画
     render();
