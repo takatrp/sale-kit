@@ -47,15 +47,33 @@
       display:flex; align-items:center; justify-content:space-between; gap:10px;
     }
     .brand{display:flex; align-items:center; gap:12px; min-width:0;}
+
+    /* ★追加：ロゴリンク（クリック領域整備） */
+    .logoLink{
+      display:block;
+      line-height:0;
+      border-radius:14px;
+      flex:0 0 auto;
+      text-decoration:none;
+    }
+
+    /* ★修正：ロゴの実線枠を廃止し、他ツール同様の見た目（枠なし＋柔らかい影） */
     .logo{
       width:44px; height:44px;
       border-radius:14px;
-      border:1px solid rgba(87,136,153,.35);
-      background:#fff;
-      object-fit:cover;
+      border:none;                 /* ← 実線枠を削除 */
+      background:transparent;       /* 必要なら #fff に戻してOK */
+      object-fit:contain;           /* cover → contain（ロゴを切らない） */
       display:block;
-      flex:0 0 auto;
+      box-shadow:0 6px 16px rgba(20,40,50,.10);
+      transition:.12s transform,.12s box-shadow;
+      padding:0;                   /* 必要なら 4px 等にしてもOK */
     }
+    .logoLink:hover .logo{
+      transform:translateY(-1px);
+      box-shadow:0 10px 18px rgba(20,40,50,.12);
+    }
+
     .btxt{min-width:0}
     .bttl{font-weight:900; font-size:24px; line-height:1.15; letter-spacing:.02em;}
     @media (max-width:480px){
@@ -453,7 +471,11 @@
   <div class="top">
     <div class="topin">
       <div class="brand">
-        <img class="logo" src="ロゴ.jpg" alt="ロゴ" />
+        <!-- ★修正：ロゴにツールポータルへのリンクを付与 -->
+        <a class="logoLink" href="https://takatrp.github.io/tool-portal/" aria-label="ツールポータルへ">
+          <img class="logo" src="ロゴ.jpg" alt="ロゴ" />
+        </a>
+
         <div class="btxt">
           <div class="bttl">打ち手検討ツール</div>
           <div class="bsub">支出額を売上換算 → 打ち手を検討</div>
