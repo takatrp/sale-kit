@@ -176,6 +176,15 @@
       color:var(--text);
       font-size:16px;
       outline:none;
+      transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+    }
+
+    /* ★追加：転記された値のハイライト */
+    input.imported-value {
+      background-color: #fff9e6;
+      border-color: #f2c94c;
+      color: var(--danger);
+      font-weight: 900;
     }
 
     input::placeholder, textarea::placeholder{ color: rgba(86,112,122,.45); }
@@ -919,6 +928,13 @@
       }
     })();
 
+    // ★追加：入力があったらハイライトを解除する処理
+    document.addEventListener("input", (e) => {
+      if(e.target && e.target.classList && e.target.classList.contains("imported-value")){
+        e.target.classList.remove("imported-value");
+      }
+    });
+
     // =========================
     // 正規化（記号混入を強く吸収）
     // =========================
@@ -1413,6 +1429,7 @@
         const initUnitPrice = (importedUnitPrice !== null && importedUnitPrice !== undefined)
           ? formatInt(importedUnitPrice)
           : "";
+        const isImportedUnit = (importedUnitPrice !== null && importedUnitPrice !== undefined && initUnitPrice !== "");
 
         inputA.innerHTML = `
           <label>入力</label>
@@ -1427,7 +1444,7 @@
 
           <div style="margin-top:10px;">
             <label for="volumeUnitPrice">${L.unitPriceLabel}</label>
-            <input id="volumeUnitPrice" inputmode="numeric" pattern="[0-9]*" placeholder="例：12,000" data-format="int" value="${initUnitPrice}" />
+            <input id="volumeUnitPrice" inputmode="numeric" pattern="[0-9]*" placeholder="例：12,000" data-format="int" class="${isImportedUnit ? 'imported-value' : ''}" value="${initUnitPrice}" />
             <div class="help">${L.unitHelp}</div>
             <div class="err" id="volumeUnitPriceErr" aria-live="polite"></div>
           </div>
@@ -1910,6 +1927,16 @@
         ex.monthly_quantity = q;
       }
 
+      // ★追加：必要な上乗せ率をURLパラメータで渡す
+      const c = compute();
+      if(c.annualSales > 0 && Number.isFinite(c.needPricePct)){
+        const pct = c.needPricePct.toFixed(2);
+        // 価格改定検討ツールのどのパラメータ名でも拾えるよう複数セットしておく（後で整理可能）
+        ex.target_up_pct = pct;
+        ex.need_pct = pct;
+        ex.rate_up = pct;
+      }
+
       return ex;
     }
 
@@ -2083,13 +2110,19 @@
         changed = true;
       }
 
+      // ★追加：URLからセットした入力欄にハイライトを適用するヘルパー
+      function markImported(id) {
+        const el = $(id);
+        if(el) el.classList.add("imported-value");
+      }
+
       const setSpendInto = (mode, rawVal)=>{
         const v = num(rawVal);
         if(v > 0){
           const fmtV = formatInt(v);
-          if(mode === "monthly") $("spendMonthly").value = fmtV;
-          if(mode === "yearly")  $("spendYearly").value  = fmtV;
-          if(mode === "once")    $("spendOnce").value    = fmtV;
+          if(mode === "monthly") { $("spendMonthly").value = fmtV; markImported("spendMonthly"); }
+          if(mode === "yearly")  { $("spendYearly").value  = fmtV; markImported("spendYearly"); }
+          if(mode === "once")    { $("spendOnce").value    = fmtV; markImported("spendOnce");   }
           return true;
         }
         return false;
@@ -2109,6 +2142,7 @@
 
       if(p_cmr !== null && String(p_cmr).trim() !== ""){
         $("cmr").value = normalizeDecimalText(p_cmr);
+        markImported("cmr");
         changed = true;
       }
 
@@ -2116,6 +2150,7 @@
         const v = num(p_sales);
         if(v > 0){
           $("annualSales").value = formatInt(v);
+          markImported("annualSales");
           changed = true;
         }
       }
@@ -2124,6 +2159,7 @@
         const v = num(p_recovery);
         if(v >= 1){
           $("recoveryMonths").value = formatInt(v);
+          markImported("recoveryMonths");
           syncRecoveryChipsFromInput();
           changed = true;
         }
@@ -2135,6 +2171,7 @@
         if($("volumeUnitPrice")){
           $("volumeUnitPrice").value = formatInt(v);
           formatIntInput($("volumeUnitPrice"));
+          markImported("volumeUnitPrice");
         }
         changed = true;
       }
@@ -2218,6 +2255,9 @@
       ].forEach(id=>{
         if($(id)) $(id).value = "";
       });
+
+      // ★追加：リセット時にハイライトも消去
+      document.querySelectorAll('.imported-value').forEach(el => el.classList.remove('imported-value'));
 
       ["spendMonthlyErr","spendYearlyErr","spendOnceErr","recoveryErr","cmrErr"].forEach(id=>showErr(id, ""));
 
