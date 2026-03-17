@@ -835,6 +835,7 @@
           </div>
 
           <canvas id="qrCanvas" style="max-width:100%; height:auto; background:#fff; border-radius:12px;"></canvas>
+          <img id="qrImageFallback" alt="QRコード" style="display:none; width:320px; max-width:100%; height:auto; margin:0 auto; background:#fff; border-radius:12px;" />
 
           <div class="help" id="qrUrlText" style="margin-top:12px; word-break:break-all;"></div>
 
@@ -2572,35 +2573,13 @@
     }
 
 
-    function loadScript(src){
-      return new Promise((resolve, reject)=>{
-        const s = document.createElement("script");
-        s.src = src;
-        s.async = true;
-        s.onload = ()=>resolve(true);
-        s.onerror = ()=>reject(new Error("failed to load: " + src));
-        document.head.appendChild(s);
-      });
-    }
-
-    async function ensureQRCodeLib(){
-      if(window.QRCode && typeof window.QRCode.toCanvas === "function") return true;
-
-      const cdns = [
-        "https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js",
-        "https://unpkg.com/qrcode@1.5.3/build/qrcode.min.js",
-        "https://cdnjs.cloudflare.com/ajax/libs/qrcode/1.5.3/qrcode.min.js"
+    function buildQrImageApiUrls(text){
+      const enc = encodeURIComponent(text);
+      return [
+        `https://chart.googleapis.com/chart?cht=qr&chs=320x320&chld=L|0&chl=${enc}`,
+        `https://api.qrserver.com/v1/create-qr-code/?size=320x320&ecc=L&data=${enc}`,
+        `https://quickchart.io/qr?size=320&ecLevel=L&text=${enc}`
       ];
-
-      for(const src of cdns){
-        try{
-          await loadScript(src);
-          if(window.QRCode && typeof window.QRCode.toCanvas === "function") return true;
-        }catch(e){
-          // try next CDN
-        }
-      }
-      return false;
     }
 
     async function showQrForMobile(){
@@ -2608,21 +2587,36 @@
         const shareUrl = buildMobileShareUrl();
 
         const qrCanvas = $("qrCanvas");
+        const qrImage = $("qrImageFallback");
         const qrUrlText = $("qrUrlText");
         qrUrlText.textContent = shareUrl;
 
-        const okLib = await ensureQRCodeLib();
-        if(!okLib){
-          $("qrModalBack").style.display = "flex";
-          showImportToast("QRライブラリの読み込みに失敗しました（URLコピーをご利用ください）");
-          return;
-        }
+        qrCanvas.style.display = "none";
+        qrImage.style.display = "none";
 
-        await QRCode.toCanvas(qrCanvas, shareUrl, {
-          width: 320,
-          margin: 2,
-          errorCorrectionLevel: "L"
-        });
+        if(window.QRCode && typeof window.QRCode.toCanvas === "function"){
+          await QRCode.toCanvas(qrCanvas, shareUrl, {
+            width: 320,
+            margin: 2,
+            errorCorrectionLevel: "L"
+          });
+          qrCanvas.style.display = "block";
+        }else{
+          const urls = buildQrImageApiUrls(shareUrl);
+          let idx = 0;
+          qrImage.onload = ()=>{ qrImage.style.display = "block"; };
+          qrImage.onerror = ()=>{
+            idx += 1;
+            if(idx < urls.length){
+              qrImage.src = urls[idx];
+            }else{
+              showImportToast("QR画像の取得に失敗しました（URLコピーをご利用ください）");
+            }
+          };
+          qrImage.src = urls[idx];
+          qrImage.style.display = "block";
+          showImportToast("外部ライブラリ未読込のため、QR画像APIで表示しています");
+        }
 
         $("qrModalBack").style.display = "flex";
       }catch(err){
