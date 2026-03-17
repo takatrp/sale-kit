@@ -19,6 +19,7 @@
   <link rel="apple-touch-icon" sizes="192x192" href="favicon192192.png">
 
   <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 
   <style>
     :root{
@@ -163,6 +164,24 @@
       font-size:12px;
     }
 
+    .tutorialList{
+      margin:10px 0 0;
+      padding-left:18px;
+      color:var(--text);
+      font-size:14px;
+      line-height:1.7;
+    }
+    .tutorialList li + li{ margin-top:6px; }
+    .tutorialTip{
+      margin-top:10px;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px dashed rgba(87,136,153,.45);
+      background:#fff;
+      color:var(--muted);
+      font-size:12px;
+    }
+
     .row{display:grid; grid-template-columns:1fr 1fr; gap:10px}
     @media (max-width:760px){ .row{grid-template-columns:1fr} }
 
@@ -288,9 +307,23 @@
       box-shadow:0 12px 30px rgba(87,136,153,.15);
     }
     .bigCardIcon{
-      font-size:38px;
-      line-height:1;
+      width:42px;
+      height:42px;
       margin-bottom:4px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border-radius:12px;
+      background:rgba(87,136,153,.08);
+      color:var(--brand);
+    }
+    .bigCardIcon svg{ width:24px; height:24px; display:block; }
+
+    .btnIcon{
+      width:16px;
+      height:16px;
+      margin-right:6px;
+      vertical-align:-3px;
     }
     .bigCard h3{margin:0; font-size:17px; font-weight:900}
     .bigCard p{margin:0; color:var(--muted); font-size:12px; line-height:1.5}
@@ -514,6 +547,23 @@
         <h2>1. 売上換算</h2>
         <div class="p">支出額が「売上に直すとどれくらいか」を、限界利益率で整理します。</div>
 
+        <details class="fold" id="foldTutorial" style="margin-top:10px;">
+          <summary>はじめての方へ（3分チュートリアル）</summary>
+          <div class="inside">
+            <ol class="tutorialList">
+              <li><b>Step1：</b>支出の頻度（毎月/年額/単発）と金額、限界利益率を入力します。</li>
+              <li><b>Step2：</b>表示された「売上換算額」を見て、まずは優先度を判断します。</li>
+              <li><b>Step3：</b>「単価を上げる / 数量を上げる / 自動化する」から打ち手を選び、次の一手まで決めます。</li>
+              <li><b>Step4：</b>最後に「要点をコピー」または「宣言シートを保存」で社内共有します。</li>
+            </ol>
+            <div class="tutorialTip">
+              <b>数字連動について：</b>
+              「それ、売上に直すといくらですか？」や「標準保障額・保険料換算ツール」など、他ツールから開いた場合はURLパラメータ経由で数字を自動転記できます。
+              自動転記された入力欄は黄色ハイライトで確認できます。
+            </div>
+          </div>
+        </details>
+
         <div class="avgWrap">
           <div class="avgTitle">支出の頻度</div>
           <div class="avgGrid" id="spendModeGrid">
@@ -625,7 +675,7 @@
 
         <div id="routeChooser" class="chooser" aria-label="打ち手の選択">
           <div class="bigCard" data-target="price">
-            <div class="bigCardIcon">💎</div>
+            <div class="bigCardIcon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" role="img"><path d="M6 9L9 4h6l3 5-6 11L6 9Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 4l3 5 3-5M6 9h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
             <div class="grow">
               <h3>単価を上げる</h3>
               <p>価格・値付け・客層・提供価値の見直しで、同じ労力で利益を増やす方向です。</p>
@@ -634,7 +684,7 @@
           </div>
 
           <div class="bigCard" data-target="volume">
-            <div class="bigCardIcon">📦</div>
+            <div class="bigCardIcon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" role="img"><path d="M4 8.5 12 4l8 4.5v7L12 20l-8-4.5v-7Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 20v-7.5M4.5 8.8 12 13l7.5-4.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
             <div class="grow">
               <h3>数量を上げる</h3>
               <p>「取引単価×取引数」の整理で、必要な追加件数と入口数を数字で見える化します。</p>
@@ -643,7 +693,7 @@
           </div>
 
           <div class="bigCard" data-target="auto">
-            <div class="bigCardIcon">⚙️</div>
+            <div class="bigCardIcon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" role="img"><path d="M10.3 3.6h3.4l.6 2a6.8 6.8 0 0 1 1.6.9l2-.8 1.7 2.9-1.5 1.5c.1.6.1 1.2 0 1.8l1.5 1.5-1.7 2.9-2-.8a6.8 6.8 0 0 1-1.6.9l-.6 2h-3.4l-.6-2a6.8 6.8 0 0 1-1.6-.9l-2 .8-1.7-2.9 1.5-1.5a7.7 7.7 0 0 1 0-1.8L3.4 8.6l1.7-2.9 2 .8c.5-.4 1-.7 1.6-.9l.6-2Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><circle cx="12" cy="12" r="2.6" stroke="currentColor" stroke-width="1.8"/></svg></div>
             <div class="grow">
               <h3>業務プロセスを自動化</h3>
               <p>時間を作り、その時間で付加価値活動へ移す方向です（回収に必要な削減時間の目安が出ます）。</p>
@@ -733,8 +783,8 @@
 
       <section class="card card-actions" aria-label="操作">
         <div class="action-row">
-          <button id="btnSaveCard" class="btn save-card" type="button">📸 宣言シートを保存</button>
-          
+          <button id="btnSaveCard" class="btn save-card" type="button"><svg class="btnIcon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 8.5a2 2 0 0 1 2-2h2.1l1.2-1.8h5.4l1.2 1.8H18a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="12.5" r="3.2" stroke="currentColor" stroke-width="1.8"/></svg>宣言シートを保存</button>
+          <button id="btnShowQr" class="btn" type="button">QRでスマホへ送る</button>
           <button id="btnCopy" class="btn" type="button">要点をコピー</button>
           <button id="btnPrint" class="btn" type="button">印刷 / PDF保存</button>
           <button id="btnReset" class="btn" type="button">リセット</button>
@@ -746,7 +796,7 @@
         <a href="https://www.matsumoto-kaikei.or.jp/" target="_blank" rel="noopener license">税理士法人松本会計事務所</a> ｜ 
         <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="license noopener">CC BY-NC-SA 4.0</a> ｜ 
         <a href="/tool-portal/terms.html" target="_blank" rel="noopener">利用条件</a> ｜ 
-        <span id="build-rev">r20</span>（<span id="last-updated-date"></span>）
+        <span id="build-rev">r21</span>（<span id="last-updated-date"></span>）
       </footer>
 
     </div>
@@ -765,6 +815,32 @@
         </div>
         <div class="modalHint">
           もし表示されない場合は「別タブで開く」をご利用ください（ブラウザ側/ツール側の制限で埋め込み表示ができない場合があります）。
+        </div>
+      </div>
+    </div>
+
+    <div class="modalBack" id="qrModalBack" role="dialog" aria-modal="true" aria-label="QRコード表示">
+      <div class="modal" role="document" aria-label="スマホ転送用QRコード" style="max-width:560px; height:auto;">
+        <div class="modalTop">
+          <div class="modalTitle">スマホへ送る <span>（QRコード）</span></div>
+          <div class="btns">
+            <button class="btn primary" id="btnCloseQr">閉じる</button>
+          </div>
+        </div>
+
+        <div style="padding:18px; text-align:center;">
+          <div class="p" style="margin-bottom:14px;">
+            スマホでこのQRコードを読み取ると、現在の入力内容を引き継いだ画面が開きます。<br>
+            スマホ側で「宣言シートを保存」を押してください。
+          </div>
+
+          <canvas id="qrCanvas" style="max-width:100%; height:auto; background:#fff; border-radius:12px;"></canvas>
+
+          <div class="help" id="qrUrlText" style="margin-top:12px; word-break:break-all;"></div>
+
+          <div class="btns" style="justify-content:center; margin-top:14px;">
+            <button class="btn" id="btnCopyQrUrl" type="button">URLをコピー</button>
+          </div>
         </div>
       </div>
     </div>
@@ -904,6 +980,19 @@
 
     const KEY = "mk_action_tool_v4";
     const $ = (id)=>document.getElementById(id);
+
+    function base64UrlEncodeUtf8(str){
+      const utf8 = unescape(encodeURIComponent(str));
+      const b64 = btoa(utf8);
+      return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/,"");
+    }
+
+    function base64UrlDecodeUtf8(str){
+      const b64 = str.replace(/-/g, "+").replace(/_/g, "/");
+      const pad = b64.length % 4 ? "=".repeat(4 - (b64.length % 4)) : "";
+      const bin = atob(b64 + pad);
+      return decodeURIComponent(escape(bin));
+    }
 
     // URLパラメータから取得した単価を保持する変数（数値 or null）
     let importedUnitPrice = null;
@@ -1994,10 +2083,15 @@
       }
 
       if(/^[A-Za-z0-9\-_]+=*$/.test(t) && t.length >= 8){
-        const b64 = t.replace(/-/g,'+').replace(/_/g,'/');
-        const pad = b64.length % 4;
-        const b64p = pad ? (b64 + "=".repeat(4-pad)) : b64;
-        const decoded = atobUtf8(b64p);
+        let decoded = "";
+        try{
+          decoded = base64UrlDecodeUtf8(t);
+        }catch(e){
+          const b64 = t.replace(/-/g,'+').replace(/_/g,'/');
+          const pad = b64.length % 4;
+          const b64p = pad ? (b64 + "=".repeat(4-pad)) : b64;
+          decoded = atobUtf8(b64p);
+        }
         const dt = String(decoded || "").trim();
         if(dt.startsWith("{") && dt.endsWith("}")){
           try{
@@ -2061,6 +2155,10 @@
       if(!hasIncomingAny(params)) return;
 
       const payloadObj = tryParsePayload(params) || {};
+      const getPayloadVal = (key) => {
+        const v = payloadObj?.[key];
+        return (v !== undefined && v !== null) ? String(v) : "";
+      };
 
       const getFromPayload = (keys)=>{
         for(const k of keys){
@@ -2090,6 +2188,60 @@
           .some(v => v !== null && String(v).trim() !== "");
 
       IS_RESTORING = true;
+
+      if (payloadObj && typeof payloadObj === "object" && Object.keys(payloadObj).length > 0) {
+        if (payloadObj.spendMode && ["monthly","yearly","once"].includes(payloadObj.spendMode)) {
+          setSpendMode(payloadObj.spendMode);
+          changed = true;
+        }
+
+        if (payloadObj.selectedRoute && ["price","volume","auto"].includes(payloadObj.selectedRoute)) {
+          setRoute(payloadObj.selectedRoute);
+          changed = true;
+        }
+
+        if (payloadObj.volumeLabelKey && VOLUME_LABEL_SETS[payloadObj.volumeLabelKey]) {
+          volumeLabelKey = payloadObj.volumeLabelKey;
+          changed = true;
+        }
+
+        const restoreText = (id, key) => {
+          const val = getPayloadVal(key);
+          if ($(id) && val !== "") {
+            $(id).value = val;
+            changed = true;
+          }
+        };
+
+        restoreText("spendMonthly", "spendMonthly");
+        restoreText("spendYearly", "spendYearly");
+        restoreText("spendOnce", "spendOnce");
+        restoreText("recoveryMonths", "recoveryMonths");
+        restoreText("cmr", "cmr");
+        restoreText("annualSales", "annualSales");
+
+        restoreText("targetScope", "targetScope");
+        restoreText("targetGoal", "targetGoal");
+        restoreText("checkKpi", "checkKpi");
+        restoreText("firstAction", "firstAction");
+        restoreText("stopDoing", "stopDoing");
+        restoreText("nextCheck", "nextCheck");
+        restoreText("freeMemo", "freeMemo");
+
+        setTimeout(() => {
+          restoreText("volumeUnitPrice", "volumeUnitPrice");
+          restoreText("volumeConvRate", "volumeConvRate");
+          restoreText("volumeDays", "volumeDays");
+          restoreText("hourCostInput", "hourCostInput");
+
+          bindLiveFormatting(document);
+          document.querySelectorAll('input[data-format="int"]').forEach(formatIntInput);
+          document.querySelectorAll('input[data-format="decimal"]').forEach(formatDecimalInput);
+          updateRouteDetailKPIs();
+          render();
+          persist();
+        }, 0);
+      }
 
       let decidedMode = null;
       if(p_mode && ["monthly","yearly","once"].includes(p_mode)){
@@ -2273,6 +2425,48 @@
       render();
     }
 
+    function buildMobilePayload(){
+      const f = (id)=>String($(id)?.value ?? "").trim();
+
+      return {
+        spendMode,
+        selectedRoute,
+
+        spendMonthly: f("spendMonthly"),
+        spendYearly: f("spendYearly"),
+        spendOnce: f("spendOnce"),
+        recoveryMonths: f("recoveryMonths"),
+        cmr: f("cmr"),
+        annualSales: f("annualSales"),
+
+        volumeLabelKey,
+        volumeUnitPrice: f("volumeUnitPrice"),
+        volumeConvRate: f("volumeConvRate"),
+        volumeDays: f("volumeDays"),
+        hourCostInput: f("hourCostInput"),
+
+        targetScope: f("targetScope"),
+        targetGoal: f("targetGoal"),
+        checkKpi: f("checkKpi"),
+        firstAction: f("firstAction"),
+        stopDoing: f("stopDoing"),
+        nextCheck: f("nextCheck"),
+        freeMemo: f("freeMemo")
+      };
+    }
+
+    function buildMobileShareUrl(){
+      const url = new URL(window.location.href);
+      url.search = "";
+      url.hash = "";
+
+      const payload = buildMobilePayload();
+      const encoded = base64UrlEncodeUtf8(JSON.stringify(payload));
+      url.searchParams.set("payload", encoded);
+
+      return url.toString();
+    }
+
     // =========================
     // コピー用テキスト生成
     // =========================
@@ -2370,43 +2564,72 @@
       return false;
     }
 
+
+    async function showQrForMobile(){
+      try{
+        const shareUrl = buildMobileShareUrl();
+
+        const qrCanvas = $("qrCanvas");
+        const qrUrlText = $("qrUrlText");
+
+        qrUrlText.textContent = shareUrl;
+
+        await QRCode.toCanvas(qrCanvas, shareUrl, {
+          width: 320,
+          margin: 2,
+          errorCorrectionLevel: "M"
+        });
+
+        $("qrModalBack").style.display = "flex";
+      }catch(err){
+        console.error(err);
+        showImportToast("QRコードの生成に失敗しました");
+      }
+    }
+
+    function closeQrModal(){
+      $("qrModalBack").style.display = "none";
+    }
+
     // =========================
     // ★修正：画像生成処理
     // =========================
     function generateAndDownloadCard() {
-      // 1. 値のセット
       const f = (id)=>String($(id)?.value ?? "").trim();
-      
-      const scopeVal  = f("targetScope") || "-";
-      const goalVal   = f("targetGoal")  || "-";
-      const actionVal = f("firstAction") || "未入力";
-      const stopVal   = f("stopDoing")   || "-";
-      const kpiVal    = f("checkKpi")    || "-";
-      const nextVal   = f("nextCheck")   || "-";
 
-      $("card-scope").textContent  = scopeVal;
-      $("card-goal").textContent   = goalVal;
-      $("card-action").textContent = actionVal;
-      $("card-stop").textContent   = stopVal;
-      $("card-kpi").textContent    = kpiVal;
-      $("card-next").textContent   = nextVal;
+      $("card-scope").textContent  = f("targetScope") || "-";
+      $("card-goal").textContent   = f("targetGoal")  || "-";
+      $("card-action").textContent = f("firstAction") || "未入力";
+      $("card-stop").textContent   = f("stopDoing")   || "-";
+      $("card-kpi").textContent    = f("checkKpi")    || "-";
+      $("card-next").textContent   = f("nextCheck")   || "-";
 
       const d = new Date();
       $("card-date").textContent = `${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()}`;
 
-      // 2. html2canvas実行
       const area = $("capture-area");
       showImportToast("画像を作成中...");
 
       html2canvas(area, {
-        scale: 2, // 高解像度
-        useCORS: true
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff"
       }).then(canvas => {
-        const link = document.createElement('a');
-        link.download = '行動宣言シート.png';
-        link.href = canvas.toDataURL("image/png");
-        link.click();
-        showImportToast("画像を保存しました");
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            showImportToast("画像の作成に失敗しました");
+            return;
+          }
+
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = "行動宣言シート.png";
+          link.click();
+
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+          showImportToast("画像を保存しました");
+        }, "image/png");
       }).catch(err => {
         console.error(err);
         showImportToast("画像の作成に失敗しました");
@@ -2508,6 +2731,18 @@
 
     // ★追加：保存ボタンイベント
     $("btnSaveCard").addEventListener("click", generateAndDownloadCard);
+    $("btnShowQr").addEventListener("click", showQrForMobile);
+    $("btnCloseQr").addEventListener("click", closeQrModal);
+
+    $("qrModalBack").addEventListener("click", (e)=>{
+      if(e.target === $("qrModalBack")) closeQrModal();
+    });
+
+    $("btnCopyQrUrl").addEventListener("click", async ()=>{
+      const url = buildMobileShareUrl();
+      const ok = await copyToClipboard(url);
+      showImportToast(ok ? "URLをコピーしました" : "URLコピーに失敗しました");
+    });
 
     // 初回描画
     render();
