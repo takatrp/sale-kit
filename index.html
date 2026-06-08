@@ -151,6 +151,27 @@
       padding:14px;
       box-shadow:var(--shadow);
     }
+    .card.route-card{
+      position:relative;
+      border-color:rgba(87,136,153,.34);
+      box-shadow:0 14px 34px rgba(20,40,50,.13);
+    }
+    .card.route-card:before{
+      content:"";
+      position:absolute;
+      inset:0 0 auto;
+      height:4px;
+      background:linear-gradient(90deg, var(--brand), rgba(242,201,76,.82));
+      border-radius:var(--r) var(--r) 0 0;
+      pointer-events:none;
+    }
+    .route-card h2{
+      padding-top:4px;
+      color:#0f2d36;
+    }
+    .route-card > .p{
+      font-weight:700;
+    }
     h2{margin:0 0 6px; font-size:18px}
     .p{margin:6px 0 0; color:var(--muted)}
 
@@ -321,6 +342,11 @@
       position:relative;
       cursor:pointer;
     }
+    .route-card .bigCard{
+      border-color:rgba(87,136,153,.24);
+      background:linear-gradient(180deg, #fff 0%, rgba(87,136,153,.035) 100%);
+      box-shadow:0 8px 22px rgba(20,40,50,.08);
+    }
     .bigCard:hover{
       border-color:var(--brand);
       background:rgba(87,136,153,.02);
@@ -338,6 +364,10 @@
       background:rgba(87,136,153,.08);
       color:var(--brand);
     }
+    .route-card .bigCardIcon{
+      background:rgba(87,136,153,.12);
+      color:var(--actionStrong);
+    }
     .bigCardIcon svg{ width:24px; height:24px; display:block; }
 
     .btnIcon{
@@ -350,6 +380,11 @@
     .bigCard p{margin:0; color:var(--muted); font-size:12px; line-height:1.5}
     .bigCard .grow{flex:1; width:100%}
     .bigCard .btn{width:100%; margin-top:8px;}
+    .route-card .bigCard .btn.primary{
+      background:rgba(87,136,153,.14);
+      border-color:rgba(87,136,153,.48);
+      box-shadow:0 3px 0 rgba(87,136,153,.10);
+    }
 
     .detail{
       margin-top:12px;
@@ -681,7 +716,7 @@
         </div>
       </section>
 
-      <section class="card">
+      <section class="card route-card">
         <h2>2. 打ち手を検討</h2>
         <div class="p">売上換算額を「どうやって作るか」を3つの方向から検討します。</div>
 
