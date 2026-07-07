@@ -673,6 +673,7 @@
       </div>
 
       <div class="btns">
+        <button class="btn" id="btnSampleTop" type="button">サンプル入力</button>
         <button class="btn primary" id="btnResetTop">リセット</button>
       </div>
     </div>
@@ -869,7 +870,7 @@
         </div>
       </section>
 
-      <section class="card">
+      <section class="card" id="stepActionCard">
         <h2>3. 次の一手</h2>
         <div class="p">「実行（アクション）」へ落とし込むための整理です。</div>
         <div class="contextBox" aria-label="前提サマリー">
@@ -2128,8 +2129,9 @@
       renderStepContext(c);
     }
 
-    function setRoute(route){
+    function setRoute(route, options={}){
       selectedRoute = route || "";
+      const shouldScroll = options.scroll !== false;
 
       if(!selectedRoute){
         $("routeChooser").style.display = "grid";
@@ -2142,7 +2144,7 @@
       $("routeChooser").style.display = "none";
       $("routeDetail").style.display = "block";
 
-      if(route){
+      if(route && shouldScroll){
         setTimeout(() => {
           const box = $("routeDetail");
           if(!box) return;
@@ -2781,6 +2783,56 @@
       document.querySelectorAll('input[data-format="decimal"]').forEach(formatDecimalInput);
 
       render();
+    }
+
+    function applySampleInputs(){
+      const setValue = (id, value)=>{
+        const el = $(id);
+        if(el) el.value = value;
+      };
+
+      importedUnitPrice = null;
+      importedMonthlyQty = null;
+      volumeLabelKey = "generic";
+      detailBuiltFor = "";
+
+      document.querySelectorAll('.imported-value').forEach(el => el.classList.remove('imported-value'));
+      ["spendMonthlyErr","spendYearlyErr","spendOnceErr","recoveryErr","cmrErr"].forEach(id=>showErr(id, ""));
+
+      setSpendMode("monthly");
+      setValue("spendMonthly", "200,000");
+      setValue("spendYearly", "");
+      setValue("spendOnce", "");
+      setValue("recoveryMonths", "");
+      setValue("cmr", "35");
+      setValue("annualSales", "120,000,000");
+
+      setValue("purposeSpend", "広告費の増加分を回収する");
+      setValue("targetScope", "既存顧客向けの保守プラン");
+      setValue("targetGoal", "月売上 +60万円");
+      setValue("checkKpi", "平均単価・追加提案件数");
+      setValue("firstAction", "上位20社の追加提案リストを作る");
+      setValue("stopDoing", "社内資料の作り込みを30分で止める");
+      setValue("nextCheckDate", toDateInputValue(addDays(new Date(), 7)));
+      setValue("nextCheck", "幹部MTG");
+      setValue("freeMemo", "初回は既存顧客20社に絞り、反応を見て提案文を整える。");
+
+      bindLiveFormatting(document);
+      document.querySelectorAll('input[data-format="int"]').forEach(formatIntInput);
+      document.querySelectorAll('input[data-format="decimal"]').forEach(formatDecimalInput);
+      syncRecoveryChipsFromInput();
+
+      setRoute("price", { scroll:false });
+      render();
+      persist();
+
+      const box = $("stepActionCard");
+      if(box){
+        const y = box.getBoundingClientRect().top + window.scrollY - 70;
+        window.scrollTo({ top:y, behavior:"smooth" });
+      }
+
+      showImportToast("サンプルを入力しました");
     }
 
     function buildMobilePayload(){
@@ -3475,6 +3527,7 @@
     $("btnPrint").addEventListener("click", ()=>window.print());
     $("btnReset").addEventListener("click", doReset);
     $("btnResetTop").addEventListener("click", doReset);
+    $("btnSampleTop").addEventListener("click", applySampleInputs);
 
     $("btnCopy").addEventListener("click", async ()=>{
       const text = buildSummaryText();
