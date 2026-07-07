@@ -197,7 +197,7 @@
     @media (max-width:760px){ .row{grid-template-columns:1fr} }
 
     label{display:block; font-size:12px; color:var(--muted); margin:0 0 6px; font-weight:800}
-    input, textarea{
+    input, textarea, select{
       width:100%;
       padding:12px 12px;
       border-radius:12px;
@@ -223,7 +223,8 @@
     input:-ms-input-placeholder, textarea:-ms-input-placeholder{ color: rgba(86,112,122,.45); }
 
     textarea{min-height:110px; resize:vertical}
-    input:focus, textarea:focus{
+    select{cursor:pointer;}
+    input:focus, textarea:focus, select:focus{
       border-color:rgba(87,136,153,.55);
       box-shadow:0 0 0 4px rgba(87,136,153,.16);
     }
@@ -479,6 +480,99 @@
       color:var(--muted);
       font-size:12px;
       background:#fff;
+    }
+    .calendarModal{
+      max-width:680px;
+      height:auto;
+      max-height:90vh;
+    }
+    .calendarBody{
+      padding:16px;
+      overflow:auto;
+      display:grid;
+      gap:12px;
+    }
+    .calendarEvent{
+      border:1px solid rgba(23,50,58,.12);
+      border-radius:14px;
+      padding:12px;
+      background:#fff;
+    }
+    .calendarEvent.disabled{
+      opacity:.56;
+      background:rgba(246,248,251,.80);
+    }
+    .calendarEventHead{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:flex-start;
+      margin-bottom:10px;
+    }
+    .calendarEventTitle{
+      font-size:13px;
+      color:var(--muted);
+      font-weight:900;
+    }
+    .calendarPreview{
+      margin-top:3px;
+      color:var(--text);
+      font-size:15px;
+      font-weight:900;
+      line-height:1.4;
+      overflow-wrap:anywhere;
+    }
+    .calendarPreview.warn{
+      color:var(--danger);
+    }
+    .calendarGrid{
+      display:grid;
+      grid-template-columns:1fr 1fr 1fr;
+      gap:10px;
+    }
+    .calendarGrid.two{
+      grid-template-columns:1fr 1fr;
+    }
+    .calendarActions{
+      display:grid;
+      gap:8px;
+    }
+    .calendarActions .btn{
+      width:100%;
+      text-align:center;
+    }
+    .calendarActions .btn.primary{
+      background:var(--brand);
+      border-color:var(--brand);
+      color:#fff;
+    }
+    .btn:disabled,
+    .btn[disabled]{
+      opacity:.48;
+      cursor:not-allowed;
+      transform:none;
+      box-shadow:none;
+    }
+    .calendarWarn{
+      margin-top:8px;
+      color:var(--danger);
+      font-size:12px;
+      font-weight:900;
+      display:none;
+    }
+    .calendarWarn.show{display:block;}
+    @media (max-width:760px){
+      .calendarModal{
+        width:min(96vw, 680px);
+        max-height:92vh;
+      }
+      .calendarTop{
+        align-items:flex-start;
+      }
+      .calendarGrid,
+      .calendarGrid.two{
+        grid-template-columns:1fr;
+      }
     }
 
     .card-actions{padding-top:10px;}
@@ -850,9 +944,17 @@
           </div>
         </div>
 
-        <div style="margin-top:10px;">
-          <label>次回確認日 / 報告相手</label>
-          <input id="nextCheck" placeholder="例：次回巡回監査日、幹部MTGなど" />
+        <div class="row" style="margin-top:10px;">
+          <div>
+            <label>次回確認日</label>
+            <input type="date" id="nextCheckDate" />
+          </div>
+          <div>
+            <label>報告相手・場</label>
+            <input id="nextCheck" placeholder="例：〇〇税理士、幹部MTG、月次巡回監査 など" />
+          </div>
+        </div>
+        <div style="margin-top:0;">
           <div class="help">「いつ」「誰と」振り返るかを決めると、実行力が高まります。</div>
         </div>
 
@@ -866,6 +968,7 @@
         <div class="action-row">
           <button id="btnSaveCard" class="btn save-card" type="button"><svg class="btnIcon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 8.5a2 2 0 0 1 2-2h2.1l1.2-1.8h5.4l1.2 1.8H18a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="12.5" r="3.2" stroke="currentColor" stroke-width="1.8"/></svg>宣言シートを保存</button>
           <button id="btnShowQr" class="btn" type="button">QRでスマホへ送る</button>
+          <button id="btnCalendar" class="btn" type="button">カレンダーに登録</button>
           <button id="btnCopy" class="btn" type="button">要点をコピー</button>
           <button id="btnPrint" class="btn" type="button">印刷 / PDF保存</button>
           <button id="btnReset" class="btn" type="button">リセット</button>
@@ -877,7 +980,7 @@
         <a href="https://www.matsumoto-kaikei.or.jp/" target="_blank" rel="noopener license">税理士法人松本会計事務所</a> ｜ 
         <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="license noopener">CC BY-NC-SA 4.0</a> ｜ 
         <a href="/tool-portal/terms.html" target="_blank" rel="noopener">利用条件</a> ｜ 
-        <span id="build-rev">r21</span>（<span id="last-updated-date"></span>）
+        <span id="build-rev">r22</span>（<span id="last-updated-date"></span>）
       </footer>
 
     </div>
@@ -922,6 +1025,80 @@
 
           <div class="btns" style="justify-content:center; margin-top:14px;">
             <button class="btn" id="btnCopyQrUrl" type="button">URLをコピー</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modalBack" id="calModalBack" role="dialog" aria-modal="true" aria-label="カレンダーに登録">
+      <div class="modal calendarModal" role="document" aria-label="カレンダー登録">
+        <div class="modalTop calendarTop">
+          <div class="modalTitle">カレンダーに登録 <span>（.ics / Google カレンダー）</span></div>
+          <div class="btns">
+            <button class="btn primary" id="btnCloseCal" type="button">閉じる</button>
+          </div>
+        </div>
+
+        <div class="calendarBody">
+          <div class="calendarEvent" id="calActionBlock">
+            <div class="calendarEventHead">
+              <div>
+                <div class="calendarEventTitle">イベント①：最初の一歩（実行）</div>
+                <div class="calendarPreview" id="calActionPreview">（未入力）</div>
+              </div>
+            </div>
+            <div class="calendarGrid">
+              <div>
+                <label>実行日</label>
+                <input type="date" id="calActionDate" />
+              </div>
+              <div>
+                <label>開始時刻</label>
+                <select id="calActionTime"></select>
+              </div>
+              <div>
+                <label>所要時間</label>
+                <select id="calActionDuration">
+                  <option value="15">15分</option>
+                  <option value="30">30分</option>
+                  <option value="60">60分</option>
+                </select>
+              </div>
+            </div>
+            <div class="help">時刻を決めるほど実行率が上がります。朝一番がおすすめです。</div>
+            <div class="calendarWarn" id="calActionWarn">最初の一歩を入力してください</div>
+          </div>
+
+          <div class="calendarEvent" id="calCheckBlock">
+            <div class="calendarEventHead">
+              <div>
+                <div class="calendarEventTitle">イベント②：振り返り（確認）</div>
+                <div class="calendarPreview" id="calCheckPreview">次回確認日を入力すると振り返り予定も登録できます</div>
+              </div>
+            </div>
+            <div class="calendarGrid two">
+              <div>
+                <label>次回確認日</label>
+                <input type="date" id="calCheckDate" />
+              </div>
+              <div>
+                <label>開始時刻</label>
+                <select id="calCheckTime"></select>
+              </div>
+            </div>
+            <div class="help" id="calCheckHelp">次回確認日を入力すると振り返り予定も登録できます</div>
+          </div>
+
+          <div class="calendarActions">
+            <button class="btn primary" id="btnDownloadIcs" type="button">カレンダーファイル（.ics）をダウンロード</button>
+            <button class="btn" id="btnGcalAction" type="button">Google カレンダーで開く：最初の一歩</button>
+            <button class="btn" id="btnGcalCheck" type="button">Google カレンダーで開く：振り返り</button>
+          </div>
+
+          <div class="help">
+            .ics はこの端末内で生成され、外部には送信されません。ダウンロード後、カレンダーアプリで開いて登録してください。<br>
+            「Google カレンダーで開く」を使う場合、予定の内容がURLとしてGoogleに送られます。<br>
+            スマホのカレンダーに入れたい場合は、先に「QRでスマホへ送る」でスマホ側にこの画面を開き、スマホ側で「カレンダーに登録」を押すのが確実です。
           </div>
         </div>
       </div>
@@ -1277,6 +1454,7 @@
           checkKpi: $("checkKpi")?.value ?? "",
           firstAction: $("firstAction")?.value ?? "",
           stopDoing: $("stopDoing")?.value ?? "",
+          nextCheckDate: $("nextCheckDate")?.value ?? "",
           nextCheck: $("nextCheck")?.value ?? "",
           freeMemo: $("freeMemo")?.value ?? ""
         }
@@ -1316,6 +1494,7 @@
       if($("checkKpi"))    $("checkKpi").value    = f.checkKpi ?? "";
       if($("firstAction")) $("firstAction").value = f.firstAction ?? "";
       if($("stopDoing"))   $("stopDoing").value   = f.stopDoing ?? "";
+      if($("nextCheckDate")) $("nextCheckDate").value = f.nextCheckDate ?? "";
       if($("nextCheck"))   $("nextCheck").value   = f.nextCheck ?? "";
       if($("freeMemo"))    $("freeMemo").value    = f.freeMemo ?? "";
 
@@ -2403,6 +2582,7 @@
         restoreText("checkKpi", "checkKpi");
         restoreText("firstAction", "firstAction");
         restoreText("stopDoing", "stopDoing");
+        restoreText("nextCheckDate", "nextCheckDate");
         restoreText("nextCheck", "nextCheck");
         restoreText("freeMemo", "freeMemo");
 
@@ -2581,7 +2761,7 @@
 
       [
         "spendMonthly","spendYearly","spendOnce","recoveryMonths","cmr","annualSales",
-        "targetScope","purposeSpend","checkKpi","targetGoal","firstAction","stopDoing","nextCheck","freeMemo"
+        "targetScope","purposeSpend","checkKpi","targetGoal","firstAction","stopDoing","nextCheckDate","nextCheck","freeMemo"
       ].forEach(id=>{
         if($(id)) $(id).value = "";
       });
@@ -2631,6 +2811,7 @@
         checkKpi: f("checkKpi"),
         firstAction: f("firstAction"),
         stopDoing: f("stopDoing"),
+        nextCheckDate: f("nextCheckDate"),
         nextCheck: f("nextCheck"),
         freeMemo: f("freeMemo")
       };
@@ -2651,6 +2832,21 @@
       url.searchParams.set("payload", encoded);
 
       return url.toString();
+    }
+
+    function formatDateSlash(value){
+      const v = String(value ?? "").trim();
+      const m = v.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      return m ? `${m[1]}/${m[2]}/${m[3]}` : v;
+    }
+
+    function buildNextCheckLabel(){
+      const date = formatDateSlash($("nextCheckDate")?.value);
+      const place = String($("nextCheck")?.value ?? "").trim();
+      if(date && place) return `${date}／報告：${place}`;
+      if(date) return date;
+      if(place) return `報告：${place}`;
+      return "";
     }
 
     // =========================
@@ -2722,7 +2918,8 @@
       if(f("checkKpi"))    lines.push(`- 確認指標：${f("checkKpi")}`);
       if(f("firstAction")) lines.push(`- 最初の一歩：${f("firstAction")}`);
       if(f("stopDoing"))   lines.push(`- やめること：${f("stopDoing")}`);
-      if(f("nextCheck"))   lines.push(`- 次回確認日/報告相手：${f("nextCheck")}`);
+      const nextCheckLabel = buildNextCheckLabel();
+      if(nextCheckLabel)   lines.push(`- 次回確認日/報告相手：${nextCheckLabel}`);
       if(f("freeMemo"))    lines.push(`- メモ：${f("freeMemo")}`);
 
       return lines.join("\n");
@@ -2752,15 +2949,6 @@
     }
 
 
-    function buildQrImageApiUrls(text){
-      const enc = encodeURIComponent(text);
-      return [
-        `https://chart.googleapis.com/chart?cht=qr&chs=320x320&chld=L|0&chl=${enc}`,
-        `https://api.qrserver.com/v1/create-qr-code/?size=320x320&ecc=L&data=${enc}`,
-        `https://quickchart.io/qr?size=320&ecLevel=L&text=${enc}`
-      ];
-    }
-
     async function showQrForMobile(){
       try{
         const shareUrl = buildMobileShareUrl();
@@ -2781,20 +2969,8 @@
           });
           qrCanvas.style.display = "block";
         }else{
-          const urls = buildQrImageApiUrls(shareUrl);
-          let idx = 0;
-          qrImage.onload = ()=>{ qrImage.style.display = "block"; };
-          qrImage.onerror = ()=>{
-            idx += 1;
-            if(idx < urls.length){
-              qrImage.src = urls[idx];
-            }else{
-              showImportToast("QR画像の取得に失敗しました（URLコピーをご利用ください）");
-            }
-          };
-          qrImage.src = urls[idx];
-          qrImage.style.display = "block";
-          showImportToast("外部ライブラリ未読込のため、QR画像APIで表示しています");
+          qrImage.removeAttribute("src");
+          showImportToast("QR生成ライブラリを読み込めませんでした。URLコピーをご利用ください");
         }
 
         $("qrModalBack").style.display = "flex";
@@ -2807,6 +2983,350 @@
 
     function closeQrModal(){
       $("qrModalBack").style.display = "none";
+    }
+
+    function pad2(n){
+      return String(n).padStart(2, "0");
+    }
+
+    function toDateInputValue(d){
+      return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+    }
+
+    function addDays(d, days){
+      const nd = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      nd.setDate(nd.getDate() + days);
+      return nd;
+    }
+
+    function parseLocalDateTime(dateValue, timeValue){
+      const dm = String(dateValue || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      const tm = String(timeValue || "").match(/^(\d{2}):(\d{2})$/);
+      if(!dm || !tm) return null;
+      return new Date(Number(dm[1]), Number(dm[2])-1, Number(dm[3]), Number(tm[1]), Number(tm[2]), 0, 0);
+    }
+
+    function addMinutes(d, minutes){
+      const nd = new Date(d.getTime());
+      nd.setMinutes(nd.getMinutes() + Number(minutes || 0));
+      return nd;
+    }
+
+    function formatBasicLocalDateTime(d){
+      return `${d.getFullYear()}${pad2(d.getMonth()+1)}${pad2(d.getDate())}T${pad2(d.getHours())}${pad2(d.getMinutes())}00`;
+    }
+
+    function formatUtcStamp(d=new Date()){
+      return `${d.getUTCFullYear()}${pad2(d.getUTCMonth()+1)}${pad2(d.getUTCDate())}T${pad2(d.getUTCHours())}${pad2(d.getUTCMinutes())}${pad2(d.getUTCSeconds())}Z`;
+    }
+
+    function escapeIcsText(value){
+      return String(value ?? "")
+        .replace(/\\/g, "\\\\")
+        .replace(/;/g, "\\;")
+        .replace(/,/g, "\\,")
+        .replace(/\r\n|\r|\n/g, "\\n");
+    }
+
+    function foldIcsLine(line){
+      const encoder = new TextEncoder();
+      const out = [];
+      let prefix = "";
+      let chunk = "";
+
+      Array.from(String(line)).forEach(ch=>{
+        const next = chunk + ch;
+        if(encoder.encode(prefix + next).length > 75 && chunk !== ""){
+          out.push(prefix + chunk);
+          prefix = " ";
+          chunk = ch;
+        }else{
+          chunk = next;
+        }
+      });
+
+      out.push(prefix + chunk);
+      return out;
+    }
+
+    function icsLine(name, value){
+      return foldIcsLine(`${name}:${escapeIcsText(value)}`);
+    }
+
+    function buildTimeOptions(selectEl, defaultValue){
+      if(!selectEl || selectEl.options.length) return;
+      for(let h=0; h<24; h++){
+        for(let m=0; m<60; m+=30){
+          const value = `${pad2(h)}:${pad2(m)}`;
+          const opt = document.createElement("option");
+          opt.value = value;
+          opt.textContent = value;
+          selectEl.appendChild(opt);
+        }
+      }
+      selectEl.value = defaultValue;
+    }
+
+    function safeGtag(){
+      try{
+        if(typeof gtag === "function") gtag.apply(null, arguments);
+      }catch(e){}
+    }
+
+    function getActionPurpose(){
+      const c = compute();
+      return getStep1Context(c).purpose || "";
+    }
+
+    function collectFilledLines(items){
+      return items
+        .map(item => ({ label:item.label, value:String(item.value ?? "").trim() }))
+        .filter(item => item.value !== "" && item.value !== "-")
+        .map(item => item.label ? `${item.label}${item.value}` : item.value);
+    }
+
+    function buildNextCheckDescriptionLine(){
+      const date = formatDateSlash($("nextCheckDate")?.value);
+      const place = String($("nextCheck")?.value ?? "").trim();
+      if(date && place) return `次回確認日：${date}／報告：${place}`;
+      if(date) return `次回確認日：${date}`;
+      if(place) return `報告：${place}`;
+      return "";
+    }
+
+    function buildActionDescription({short=false}={}){
+      const purposeBlock = collectFilledLines([
+        {label:"目的とする支出：", value:getActionPurpose()},
+        {label:"対象：", value:$("targetScope")?.value},
+        {label:"目標とする成果：", value:$("targetGoal")?.value},
+        {label:"確認する指標：", value:$("checkKpi")?.value}
+      ]);
+
+      const blocks = [];
+      if(purposeBlock.length){
+        blocks.push(["■ 何のための行動か"].concat(purposeBlock).join("\n"));
+      }
+
+      if(!short){
+        const stopDoing = String($("stopDoing")?.value ?? "").trim();
+        if(stopDoing){
+          blocks.push(["■ この時間を確保するためにやめること", stopDoing].join("\n"));
+        }
+
+        const nextLine = buildNextCheckDescriptionLine();
+        if(nextLine){
+          blocks.push(["■ 振り返り", nextLine].join("\n"));
+        }
+      }
+
+      blocks.push("打ち手検討ツール：https://takatrp.github.io/sale-kit/");
+      return blocks.join("\n\n");
+    }
+
+    function buildCheckTitle(){
+      const reportTo = String($("nextCheck")?.value ?? "").trim();
+      return `【振り返り】「最初の一歩」を実行したか確認${reportTo ? `（報告：${reportTo}）` : ""}`;
+    }
+
+    function buildCheckDescription(){
+      const firstAction = String($("firstAction")?.value ?? "").trim();
+      const targetGoal = String($("targetGoal")?.value ?? "").trim();
+      const checkKpi = String($("checkKpi")?.value ?? "").trim();
+      const lines = [
+        "確認すること：",
+        `・最初の一歩「${firstAction}」を実行したか`
+      ];
+      if(targetGoal) lines.push(`・目標とする成果：${targetGoal}`);
+      if(checkKpi) lines.push(`・確認する指標：${checkKpi}`);
+      lines.push("");
+      lines.push("実行できていなければ、その場で次の実行日時を決める。");
+      lines.push("");
+      lines.push("打ち手検討ツール：https://takatrp.github.io/sale-kit/");
+      return lines.join("\n");
+    }
+
+    function getCalendarState(){
+      const firstAction = String($("firstAction")?.value ?? "").trim();
+      const actionDate = String($("calActionDate")?.value || toDateInputValue(addDays(new Date(), 1)));
+      const actionTime = String($("calActionTime")?.value || "08:30");
+      const actionDuration = Number($("calActionDuration")?.value || 30);
+      const checkDate = String($("nextCheckDate")?.value || $("calCheckDate")?.value || "");
+      const checkTime = String($("calCheckTime")?.value || "17:00");
+      return {
+        firstAction,
+        actionDate,
+        actionTime,
+        actionDuration,
+        checkDate,
+        checkTime,
+        actionValid:firstAction !== "",
+        checkValid:checkDate !== ""
+      };
+    }
+
+    function buildCalendarEvents(){
+      const st = getCalendarState();
+      if(!st.actionValid) return [];
+
+      const actionStart = parseLocalDateTime(st.actionDate, st.actionTime);
+      if(!actionStart) return [];
+      const actionEnd = addMinutes(actionStart, st.actionDuration);
+      const actionTitle = `【最初の一歩】${st.firstAction}`;
+      const events = [{
+        title: actionTitle,
+        start: actionStart,
+        end: actionEnd,
+        description: buildActionDescription()
+      }];
+
+      if(st.checkValid){
+        const checkStart = parseLocalDateTime(st.checkDate, st.checkTime);
+        if(checkStart){
+          events.push({
+            title: buildCheckTitle(),
+            start: checkStart,
+            end: addMinutes(checkStart, 30),
+            description: buildCheckDescription()
+          });
+        }
+      }
+
+      return events;
+    }
+
+    function updateCalendarModal(){
+      const st = getCalendarState();
+      const actionTitle = st.actionValid ? `【最初の一歩】${st.firstAction}` : "（未入力）";
+      const actionPreview = $("calActionPreview");
+      if(actionPreview){
+        actionPreview.textContent = actionTitle;
+        actionPreview.classList.toggle("warn", !st.actionValid);
+      }
+
+      if($("calActionWarn")) $("calActionWarn").classList.toggle("show", !st.actionValid);
+
+      const checkTitle = st.checkValid ? buildCheckTitle() : "次回確認日を入力すると振り返り予定も登録できます";
+      if($("calCheckPreview")) $("calCheckPreview").textContent = checkTitle;
+      if($("calCheckHelp")) $("calCheckHelp").textContent = st.checkValid ? "所要時間は30分固定です。" : "次回確認日を入力すると振り返り予定も登録できます";
+      if($("calCheckBlock")) $("calCheckBlock").classList.toggle("disabled", !st.checkValid);
+      if($("calCheckDate")) $("calCheckDate").value = st.checkDate;
+
+      const canExportAction = st.actionValid;
+      if($("btnDownloadIcs")) $("btnDownloadIcs").disabled = !canExportAction;
+      if($("btnGcalAction")) $("btnGcalAction").disabled = !canExportAction;
+      if($("btnGcalCheck")) $("btnGcalCheck").disabled = !(canExportAction && st.checkValid);
+    }
+
+    function openCalendarModal(){
+      buildTimeOptions($("calActionTime"), "08:30");
+      buildTimeOptions($("calCheckTime"), "17:00");
+      if($("calActionDate")) $("calActionDate").value = toDateInputValue(addDays(new Date(), 1));
+      if($("calActionTime")) $("calActionTime").value = "08:30";
+      if($("calActionDuration")) $("calActionDuration").value = "30";
+      if($("calCheckTime")) $("calCheckTime").value = "17:00";
+      if($("calCheckDate")) $("calCheckDate").value = String($("nextCheckDate")?.value ?? "");
+
+      updateCalendarModal();
+      $("calModalBack").style.display = "flex";
+      safeGtag("event", "calendar_open");
+    }
+
+    function closeCalendarModal(){
+      $("calModalBack").style.display = "none";
+    }
+
+    function buildIcs(events){
+      const now = Date.now();
+      const dtstamp = formatUtcStamp(new Date());
+      const lines = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//matsumoto-kaikei//sale-kit r22//JA",
+        "CALSCALE:GREGORIAN",
+        "METHOD:PUBLISH",
+        "BEGIN:VTIMEZONE",
+        "TZID:Asia/Tokyo",
+        "BEGIN:STANDARD",
+        "TZOFFSETFROM:+0900",
+        "TZOFFSETTO:+0900",
+        "TZNAME:JST",
+        "DTSTART:19700101T000000",
+        "END:STANDARD",
+        "END:VTIMEZONE"
+      ];
+
+      events.forEach((event, idx)=>{
+        lines.push("BEGIN:VEVENT");
+        lines.push(`UID:${now}-${idx+1}@takatrp.github.io`);
+        lines.push(`DTSTAMP:${dtstamp}`);
+        lines.push(`DTSTART;TZID=Asia/Tokyo:${formatBasicLocalDateTime(event.start)}`);
+        lines.push(`DTEND;TZID=Asia/Tokyo:${formatBasicLocalDateTime(event.end)}`);
+        lines.push(...icsLine("SUMMARY", event.title));
+        lines.push(...icsLine("DESCRIPTION", event.description));
+        lines.push("BEGIN:VALARM");
+        lines.push("TRIGGER:-PT15M");
+        lines.push("ACTION:DISPLAY");
+        lines.push(...icsLine("DESCRIPTION", event.title));
+        lines.push("END:VALARM");
+        lines.push("END:VEVENT");
+      });
+
+      lines.push("END:VCALENDAR");
+      return lines.join("\r\n") + "\r\n";
+    }
+
+    function downloadCalendarIcs(){
+      const events = buildCalendarEvents();
+      if(!events.length) return;
+      const ics = buildIcs(events);
+      const blob = new Blob([ics], {type:"text/calendar;charset=utf-8"});
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const datePart = String($("calActionDate")?.value || toDateInputValue(addDays(new Date(), 1))).replace(/-/g, "");
+      link.href = url;
+      link.download = `行動宣言_${datePart}.ics`;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      showImportToast(".icsをダウンロードしました");
+      safeGtag("event", "calendar_export", { method:"ics", events:events.length });
+    }
+
+    function buildGoogleCalendarUrl(kind){
+      const st = getCalendarState();
+      if(kind === "action"){
+        const start = parseLocalDateTime(st.actionDate, st.actionTime);
+        if(!st.actionValid || !start) return "";
+        const end = addMinutes(start, st.actionDuration);
+        const url = new URL("https://calendar.google.com/calendar/render");
+        url.searchParams.set("action", "TEMPLATE");
+        url.searchParams.set("text", `【最初の一歩】${st.firstAction}`);
+        url.searchParams.set("dates", `${formatBasicLocalDateTime(start)}/${formatBasicLocalDateTime(end)}`);
+        url.searchParams.set("ctz", "Asia/Tokyo");
+        url.searchParams.set("details", buildActionDescription({short:true}));
+        return url.toString();
+      }
+
+      if(kind === "check"){
+        const start = parseLocalDateTime(st.checkDate, st.checkTime);
+        if(!st.actionValid || !st.checkValid || !start) return "";
+        const end = addMinutes(start, 30);
+        const url = new URL("https://calendar.google.com/calendar/render");
+        url.searchParams.set("action", "TEMPLATE");
+        url.searchParams.set("text", buildCheckTitle());
+        url.searchParams.set("dates", `${formatBasicLocalDateTime(start)}/${formatBasicLocalDateTime(end)}`);
+        url.searchParams.set("ctz", "Asia/Tokyo");
+        url.searchParams.set("details", buildCheckDescription());
+        return url.toString();
+      }
+
+      return "";
+    }
+
+    function openGoogleCalendar(kind){
+      const url = buildGoogleCalendarUrl(kind);
+      if(!url) return;
+      window.open(url, "_blank", "noopener");
+      safeGtag("event", "calendar_export", { method:"google", which:kind });
     }
 
     // =========================
@@ -2822,7 +3342,7 @@
       $("card-action").textContent = f("firstAction") || "未入力";
       $("card-stop").textContent   = f("stopDoing")   || "-";
       $("card-kpi").textContent    = f("checkKpi")    || "-";
-      $("card-next").textContent   = f("nextCheck")   || "-";
+      $("card-next").textContent   = buildNextCheckLabel() || "-";
       $("card-memo").textContent   = f("freeMemo")    || "-";
 
       const d = new Date();
@@ -2895,12 +3415,18 @@
 
     [
       "spendMonthly","spendYearly","spendOnce","recoveryMonths","cmr","annualSales",
-      "targetScope","purposeSpend","checkKpi","targetGoal","firstAction","stopDoing","nextCheck","freeMemo"
+      "targetScope","purposeSpend","checkKpi","targetGoal","firstAction","stopDoing","nextCheckDate","nextCheck","freeMemo"
     ].forEach(id=>{
       if($(id)){
         $(id).addEventListener("input", ()=>{
           if(id==="recoveryMonths") syncRecoveryChipsFromInput();
           render();
+          if($("calModalBack")?.style.display === "flex") updateCalendarModal();
+        });
+        $(id).addEventListener("change", ()=>{
+          if(id==="recoveryMonths") syncRecoveryChipsFromInput();
+          render();
+          if($("calModalBack")?.style.display === "flex") updateCalendarModal();
         });
       }
     });
@@ -2937,6 +3463,12 @@
       if(e.key === "Escape" && $("modalBack").style.display === "flex"){
         closeModal();
       }
+      if(e.key === "Escape" && $("calModalBack").style.display === "flex"){
+        closeCalendarModal();
+      }
+      if(e.key === "Escape" && $("qrModalBack").style.display === "flex"){
+        closeQrModal();
+      }
     });
 
     // 下部ボタン
@@ -2954,10 +3486,33 @@
     $("btnSaveCard").addEventListener("click", generateAndDownloadCard);
     $("btnShowQr").addEventListener("click", showQrForMobile);
     $("btnCloseQr").addEventListener("click", closeQrModal);
+    $("btnCalendar").addEventListener("click", openCalendarModal);
+    $("btnCloseCal").addEventListener("click", closeCalendarModal);
+    $("btnDownloadIcs").addEventListener("click", downloadCalendarIcs);
+    $("btnGcalAction").addEventListener("click", ()=>openGoogleCalendar("action"));
+    $("btnGcalCheck").addEventListener("click", ()=>openGoogleCalendar("check"));
 
     $("qrModalBack").addEventListener("click", (e)=>{
       if(e.target === $("qrModalBack")) closeQrModal();
     });
+
+    $("calModalBack").addEventListener("click", (e)=>{
+      if(e.target === $("calModalBack")) closeCalendarModal();
+    });
+
+    ["calActionDate","calActionTime","calActionDuration","calCheckTime"].forEach(id=>{
+      if($(id)){
+        $(id).addEventListener("change", updateCalendarModal);
+      }
+    });
+
+    if($("calCheckDate")){
+      $("calCheckDate").addEventListener("change", ()=>{
+        if($("nextCheckDate")) $("nextCheckDate").value = $("calCheckDate").value;
+        render();
+        updateCalendarModal();
+      });
+    }
 
     $("btnCopyQrUrl").addEventListener("click", async ()=>{
       const url = buildMobileShareUrl();
