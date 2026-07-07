@@ -90,6 +90,22 @@
       .bttl{font-size:22px;}
     }
     .bsub{font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+    @media (max-width:560px){
+      .topin{
+        align-items:stretch;
+        flex-direction:column;
+      }
+      .brand{width:100%;}
+      .bsub{white-space:normal;}
+      .topin > .btns{
+        justify-content:stretch;
+        width:100%;
+      }
+      .topin > .btns .btn{
+        flex:1 1 0;
+        min-height:44px;
+      }
+    }
 
     .btns{display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end}
     .btn{
@@ -472,6 +488,24 @@
     }
     .modalTitle{font-weight:900; font-size:13px; color:var(--text); min-width:0}
     .modalTitle span{color:var(--muted); font-weight:800; font-size:12px}
+    @media (max-width:560px){
+      .modalBack{padding:8px;}
+      .modal{
+        width:100%;
+        max-width:100%;
+      }
+      .modalTop{
+        align-items:stretch;
+        flex-direction:column;
+      }
+      .modalTop .btns{
+        justify-content:stretch;
+        width:100%;
+      }
+      .modalTop .btns .btn{
+        flex:1 1 auto;
+      }
+    }
     .modalFrame{flex:1; background:#fff;}
     iframe{width:100%; height:100%; border:0; background:#fff;}
     .modalHint{
@@ -579,9 +613,22 @@
     .action-row{display:flex; gap:10px; margin:6px 0; flex-wrap:wrap;}
     .action-row .btn{
       background:#eef7f9; color:#3f7c8e; border:1px solid #cfe3ea; box-shadow:none;
-      padding:12px 14px; font-size:15px; border-radius:12px; flex:1 1 20%; white-space:nowrap;
+      padding:12px 14px; font-size:15px; border-radius:12px; flex:1 1 150px; white-space:normal;
+      min-height:48px;
     }
     .action-row .btn:hover{background:#e6f2f6;}
+    .action-row .btn.calendar-action{
+      background:#b45a2b;
+      border-color:#9f4821;
+      color:#fff;
+      font-weight:900;
+      box-shadow:0 8px 18px rgba(180,90,43,.22);
+    }
+    .action-row .btn.calendar-action:hover{
+      background:#9f4821;
+      border-color:#893b19;
+      box-shadow:0 12px 24px rgba(180,90,43,.30);
+    }
     
     /* ★修正：保存ボタンのオーバーライド（ブランドカラーSolid） */
     .action-row .btn.save-card{
@@ -596,7 +643,7 @@
     }
     
     @media (max-width:760px){
-      .action-row .btn{flex:1 1 45%;}
+      .action-row .btn{flex:1 1 100%;}
     }
 
     footer.mk-mini{
@@ -969,7 +1016,7 @@
         <div class="action-row">
           <button id="btnSaveCard" class="btn save-card" type="button"><svg class="btnIcon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 8.5a2 2 0 0 1 2-2h2.1l1.2-1.8h5.4l1.2 1.8H18a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="12.5" r="3.2" stroke="currentColor" stroke-width="1.8"/></svg>宣言シートを保存</button>
           <button id="btnShowQr" class="btn" type="button">QRでスマホへ送る</button>
-          <button id="btnCalendar" class="btn" type="button">カレンダーに登録</button>
+          <button id="btnCalendar" class="btn calendar-action" type="button">カレンダーに登録</button>
           <button id="btnCopy" class="btn" type="button">要点をコピー</button>
           <button id="btnPrint" class="btn" type="button">印刷 / PDF保存</button>
           <button id="btnReset" class="btn" type="button">リセット</button>
@@ -3000,6 +3047,365 @@
       return false;
     }
 
+    const QR_ECC_CODEWORDS_PER_BLOCK_LOW = [
+      -1,7,10,15,20,26,18,20,24,30,18,20,24,26,30,22,24,28,30,28,28,28,28,30,30,26,28,30,30,30,30,30,30,30,30,30,30,30,30,30,30
+    ];
+    const QR_NUM_ERROR_CORRECTION_BLOCKS_LOW = [
+      -1,1,1,1,1,1,2,2,2,2,4,4,4,4,4,6,6,6,6,7,8,8,9,9,10,12,12,12,13,14,15,16,17,18,19,19,20,21,22,24,25
+    ];
+
+    function qrGetNumRawDataModules(version){
+      let result = (16 * version + 128) * version + 64;
+      if(version >= 2){
+        const numAlign = Math.floor(version / 7) + 2;
+        result -= (25 * numAlign - 10) * numAlign - 55;
+        if(version >= 7) result -= 36;
+      }
+      return result;
+    }
+
+    function qrGetNumDataCodewords(version){
+      return Math.floor(qrGetNumRawDataModules(version) / 8)
+        - QR_ECC_CODEWORDS_PER_BLOCK_LOW[version] * QR_NUM_ERROR_CORRECTION_BLOCKS_LOW[version];
+    }
+
+    function qrAppendBits(value, length, out){
+      for(let i=length-1; i>=0; i--){
+        out.push((value >>> i) & 1);
+      }
+    }
+
+    function qrReedSolomonMultiply(x, y){
+      let z = 0;
+      for(let i=7; i>=0; i--){
+        z = (z << 1) ^ ((z >>> 7) * 0x11D);
+        z ^= ((y >>> i) & 1) * x;
+      }
+      return z & 0xFF;
+    }
+
+    function qrReedSolomonComputeDivisor(degree){
+      const result = Array(degree).fill(0);
+      result[degree - 1] = 1;
+      let root = 1;
+      for(let i=0; i<degree; i++){
+        for(let j=0; j<degree; j++){
+          result[j] = qrReedSolomonMultiply(result[j], root);
+          if(j + 1 < degree) result[j] ^= result[j + 1];
+        }
+        root = qrReedSolomonMultiply(root, 0x02);
+      }
+      return result;
+    }
+
+    function qrReedSolomonComputeRemainder(data, divisor){
+      const result = Array(divisor.length).fill(0);
+      data.forEach(b=>{
+        const factor = b ^ result.shift();
+        result.push(0);
+        divisor.forEach((coef, i)=>{
+          result[i] ^= qrReedSolomonMultiply(coef, factor);
+        });
+      });
+      return result;
+    }
+
+    function qrAddEccAndInterleave(dataCodewords, version){
+      const numBlocks = QR_NUM_ERROR_CORRECTION_BLOCKS_LOW[version];
+      const blockEccLen = QR_ECC_CODEWORDS_PER_BLOCK_LOW[version];
+      const rawCodewords = Math.floor(qrGetNumRawDataModules(version) / 8);
+      const numShortBlocks = numBlocks - rawCodewords % numBlocks;
+      const shortBlockLen = Math.floor(rawCodewords / numBlocks);
+      const rsDivisor = qrReedSolomonComputeDivisor(blockEccLen);
+
+      const blocks = [];
+      let k = 0;
+      for(let i=0; i<numBlocks; i++){
+        const dataLen = shortBlockLen - blockEccLen + (i < numShortBlocks ? 0 : 1);
+        const dat = dataCodewords.slice(k, k + dataLen);
+        k += dataLen;
+        const ecc = qrReedSolomonComputeRemainder(dat, rsDivisor);
+        if(i < numShortBlocks) dat.push(0);
+        blocks.push(dat.concat(ecc));
+      }
+
+      const result = [];
+      for(let i=0; i<blocks[0].length; i++){
+        for(let j=0; j<blocks.length; j++){
+          if(i !== shortBlockLen - blockEccLen || j >= numShortBlocks){
+            result.push(blocks[j][i]);
+          }
+        }
+      }
+      return result;
+    }
+
+    function qrGetAlignmentPatternPositions(version){
+      if(version === 1) return [];
+      const numAlign = Math.floor(version / 7) + 2;
+      const size = version * 4 + 17;
+      const step = version === 32 ? 26 : Math.ceil((version * 4 + 4) / (numAlign * 2 - 2)) * 2;
+      const result = [6];
+      for(let pos = size - 7; result.length < numAlign; pos -= step){
+        result.splice(1, 0, pos);
+      }
+      return result;
+    }
+
+    function qrSetFunction(matrix, isFunction, x, y, dark){
+      matrix[y][x] = !!dark;
+      isFunction[y][x] = true;
+    }
+
+    function qrDrawFinder(matrix, isFunction, cx, cy){
+      const size = matrix.length;
+      for(let dy=-4; dy<=4; dy++){
+        for(let dx=-4; dx<=4; dx++){
+          const x = cx + dx;
+          const y = cy + dy;
+          if(0 <= x && x < size && 0 <= y && y < size){
+            const dist = Math.max(Math.abs(dx), Math.abs(dy));
+            qrSetFunction(matrix, isFunction, x, y, dist !== 2 && dist !== 4);
+          }
+        }
+      }
+    }
+
+    function qrDrawAlignment(matrix, isFunction, cx, cy){
+      for(let dy=-2; dy<=2; dy++){
+        for(let dx=-2; dx<=2; dx++){
+          qrSetFunction(matrix, isFunction, cx + dx, cy + dy, Math.max(Math.abs(dx), Math.abs(dy)) !== 1);
+        }
+      }
+    }
+
+    function qrDrawFormatBits(matrix, isFunction, mask){
+      const size = matrix.length;
+      const data = (1 << 3) | mask; // Error correction level L.
+      let rem = data;
+      for(let i=0; i<10; i++){
+        rem = (rem << 1) ^ ((rem >>> 9) * 0x537);
+      }
+      const bits = ((data << 10) | (rem & 0x3FF)) ^ 0x5412;
+      const set = (x, y, bitIndex)=>qrSetFunction(matrix, isFunction, x, y, ((bits >>> bitIndex) & 1) !== 0);
+
+      for(let i=0; i<=5; i++) set(8, i, i);
+      set(8, 7, 6);
+      set(8, 8, 7);
+      set(7, 8, 8);
+      for(let i=9; i<15; i++) set(14 - i, 8, i);
+      for(let i=0; i<8; i++) set(size - 1 - i, 8, i);
+      for(let i=8; i<15; i++) set(8, size - 15 + i, i);
+      qrSetFunction(matrix, isFunction, 8, size - 8, true);
+    }
+
+    function qrDrawVersion(matrix, isFunction, version){
+      const size = matrix.length;
+      let rem = version;
+      for(let i=0; i<12; i++){
+        rem = (rem << 1) ^ ((rem >>> 11) * 0x1F25);
+      }
+      const bits = (version << 12) | (rem & 0xFFF);
+      for(let i=0; i<18; i++){
+        const dark = ((bits >>> i) & 1) !== 0;
+        const a = size - 11 + i % 3;
+        const b = Math.floor(i / 3);
+        qrSetFunction(matrix, isFunction, a, b, dark);
+        qrSetFunction(matrix, isFunction, b, a, dark);
+      }
+    }
+
+    function qrMaskBit(mask, x, y){
+      switch(mask){
+        case 0: return (x + y) % 2 === 0;
+        case 1: return y % 2 === 0;
+        case 2: return x % 3 === 0;
+        case 3: return (x + y) % 3 === 0;
+        case 4: return (Math.floor(y / 2) + Math.floor(x / 3)) % 2 === 0;
+        case 5: return ((x * y) % 2 + (x * y) % 3) === 0;
+        case 6: return (((x * y) % 2 + (x * y) % 3) % 2) === 0;
+        default: return (((x + y) % 2 + (x * y) % 3) % 2) === 0;
+      }
+    }
+
+    function qrPenalty(matrix){
+      const size = matrix.length;
+      let result = 0;
+
+      for(let y=0; y<size; y++){
+        let runColor = matrix[y][0];
+        let run = 1;
+        for(let x=1; x<size; x++){
+          if(matrix[y][x] === runColor){
+            run++;
+            if(run === 5) result += 3;
+            else if(run > 5) result++;
+          }else{
+            runColor = matrix[y][x];
+            run = 1;
+          }
+        }
+      }
+
+      for(let x=0; x<size; x++){
+        let runColor = matrix[0][x];
+        let run = 1;
+        for(let y=1; y<size; y++){
+          if(matrix[y][x] === runColor){
+            run++;
+            if(run === 5) result += 3;
+            else if(run > 5) result++;
+          }else{
+            runColor = matrix[y][x];
+            run = 1;
+          }
+        }
+      }
+
+      for(let y=0; y<size-1; y++){
+        for(let x=0; x<size-1; x++){
+          const c = matrix[y][x];
+          if(c === matrix[y][x+1] && c === matrix[y+1][x] && c === matrix[y+1][x+1]) result += 3;
+        }
+      }
+
+      const finderPenalty = (line)=>{
+        let p = 0;
+        for(let i=0; i<=line.length-11; i++){
+          const s = line.slice(i, i+11).join("");
+          if(s === "10111010000" || s === "00001011101") p += 40;
+        }
+        return p;
+      };
+      for(let y=0; y<size; y++) result += finderPenalty(matrix[y].map(v=>v?1:0));
+      for(let x=0; x<size; x++){
+        const col = [];
+        for(let y=0; y<size; y++) col.push(matrix[y][x] ? 1 : 0);
+        result += finderPenalty(col);
+      }
+
+      let dark = 0;
+      matrix.forEach(row=>row.forEach(v=>{ if(v) dark++; }));
+      const total = size * size;
+      result += Math.floor(Math.abs(dark * 20 - total * 10) / total) * 10;
+      return result;
+    }
+
+    function qrBuildMatrix(version, codewords){
+      const size = version * 4 + 17;
+      const base = Array.from({length:size}, ()=>Array(size).fill(false));
+      const isFunction = Array.from({length:size}, ()=>Array(size).fill(false));
+
+      qrDrawFinder(base, isFunction, 3, 3);
+      qrDrawFinder(base, isFunction, size - 4, 3);
+      qrDrawFinder(base, isFunction, 3, size - 4);
+
+      const align = qrGetAlignmentPatternPositions(version);
+      align.forEach(x=>{
+        align.forEach(y=>{
+          if(!((x === 6 && y === 6) || (x === 6 && y === size - 7) || (x === size - 7 && y === 6))){
+            qrDrawAlignment(base, isFunction, x, y);
+          }
+        });
+      });
+
+      for(let i=0; i<size; i++){
+        if(!isFunction[6][i]) qrSetFunction(base, isFunction, i, 6, i % 2 === 0);
+        if(!isFunction[i][6]) qrSetFunction(base, isFunction, 6, i, i % 2 === 0);
+      }
+      qrDrawFormatBits(base, isFunction, 0);
+      if(version >= 7) qrDrawVersion(base, isFunction, version);
+
+      let bitIndex = 0;
+      let upward = true;
+      for(let right=size-1; right>=1; right-=2){
+        if(right === 6) right = 5;
+        for(let vert=0; vert<size; vert++){
+          const y = upward ? size - 1 - vert : vert;
+          for(let j=0; j<2; j++){
+            const x = right - j;
+            if(!isFunction[y][x]){
+              const dark = bitIndex < codewords.length * 8
+                ? (((codewords[Math.floor(bitIndex / 8)] >>> (7 - bitIndex % 8)) & 1) !== 0)
+                : false;
+              base[y][x] = dark;
+              bitIndex++;
+            }
+          }
+        }
+        upward = !upward;
+      }
+
+      let best = null;
+      let bestPenalty = Infinity;
+      for(let mask=0; mask<8; mask++){
+        const matrix = base.map(row=>row.slice());
+        for(let y=0; y<size; y++){
+          for(let x=0; x<size; x++){
+            if(!isFunction[y][x] && qrMaskBit(mask, x, y)) matrix[y][x] = !matrix[y][x];
+          }
+        }
+        qrDrawFormatBits(matrix, isFunction.map(row=>row.slice()), mask);
+        const penalty = qrPenalty(matrix);
+        if(penalty < bestPenalty){
+          bestPenalty = penalty;
+          best = matrix;
+        }
+      }
+
+      return { size, modules: best };
+    }
+
+    function createLocalQr(text){
+      const bytes = new TextEncoder().encode(text);
+      for(let version=1; version<=40; version++){
+        const cciBits = version <= 9 ? 8 : 16;
+        if(bytes.length >= (1 << cciBits)) continue;
+        const dataCapacityBits = qrGetNumDataCodewords(version) * 8;
+        const neededBits = 4 + cciBits + bytes.length * 8;
+        if(neededBits > dataCapacityBits) continue;
+
+        const bits = [];
+        qrAppendBits(0x4, 4, bits);
+        qrAppendBits(bytes.length, cciBits, bits);
+        bytes.forEach(b=>qrAppendBits(b, 8, bits));
+        qrAppendBits(0, Math.min(4, dataCapacityBits - bits.length), bits);
+        while(bits.length % 8 !== 0) bits.push(0);
+
+        const dataCodewords = [];
+        for(let i=0; i<bits.length; i+=8){
+          let b = 0;
+          for(let j=0; j<8; j++) b = (b << 1) | bits[i+j];
+          dataCodewords.push(b);
+        }
+        for(let pad=0xEC; dataCodewords.length < qrGetNumDataCodewords(version); pad ^= 0xEC ^ 0x11){
+          dataCodewords.push(pad);
+        }
+        return qrBuildMatrix(version, qrAddEccAndInterleave(dataCodewords, version));
+      }
+      throw new Error("QR data is too long");
+    }
+
+    function drawLocalQrToCanvas(canvas, text, options={}){
+      const qr = createLocalQr(text);
+      const margin = options.margin ?? 2;
+      const target = options.width ?? 320;
+      const scale = Math.max(1, Math.floor(target / (qr.size + margin * 2)));
+      const sizePx = (qr.size + margin * 2) * scale;
+      canvas.width = sizePx;
+      canvas.height = sizePx;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, sizePx, sizePx);
+      ctx.fillStyle = "#000000";
+      for(let y=0; y<qr.size; y++){
+        for(let x=0; x<qr.size; x++){
+          if(qr.modules[y][x]){
+            ctx.fillRect((x + margin) * scale, (y + margin) * scale, scale, scale);
+          }
+        }
+      }
+    }
 
     async function showQrForMobile(){
       try{
@@ -3013,16 +3419,27 @@
         qrCanvas.style.display = "none";
         qrImage.style.display = "none";
 
+        let generated = false;
         if(window.QRCode && typeof window.QRCode.toCanvas === "function"){
-          await QRCode.toCanvas(qrCanvas, shareUrl, {
-            width: 320,
-            margin: 2,
-            errorCorrectionLevel: "L"
-          });
+          try{
+            await QRCode.toCanvas(qrCanvas, shareUrl, {
+              width: 320,
+              margin: 2,
+              errorCorrectionLevel: "L"
+            });
+            generated = true;
+          }catch(err){
+            console.warn("QRCode library failed; using local fallback.", err);
+          }
+        }
+
+        if(!generated){
+          drawLocalQrToCanvas(qrCanvas, shareUrl, { width: 320, margin: 2 });
+          generated = true;
+        }
+
+        if(generated){
           qrCanvas.style.display = "block";
-        }else{
-          qrImage.removeAttribute("src");
-          showImportToast("QR生成ライブラリを読み込めませんでした。URLコピーをご利用ください");
         }
 
         $("qrModalBack").style.display = "flex";
